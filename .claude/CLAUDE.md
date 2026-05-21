@@ -26,9 +26,12 @@
 | 코드 | `src/object3d/<module>/` |
 | 설정 / 데이터 / 테스트 | `configs/` / `data/` / `tests/` |
 | 작업 프로세스 | `.claude/skills/workflow.md` |
+| git 작업 | 규약 `.claude/rules/git.md`, 커맨드 `.claude/commands/git/` |
 | 설계·계획 | `docs/superpowers/{specs,plans}/` |
 
-하네스 폴더 `.claude/`: `agents/` `rules/` `hooks/` `skills/` `commands/`. `skills/`만 내용이 있고 나머지는 **의도적으로 비어 있다**. 각 폴더는 그 기능이 실제로 필요해질 때 항목 하나씩 사용자 승인 후 채운다 (§6).
+하네스 폴더 `.claude/`: `agents/` `rules/` `hooks/` `skills/` `commands/`. 내용이 있는 곳은 `skills/`(워크플로우)·`rules/`(git 규약)·`commands/`(git 커맨드)이고, 빈 폴더는 의도적이다 — 그 기능이 실제로 필요해질 때 항목 하나씩 사용자 승인 후 채운다 (§6).
+
+**확장 패턴:** 새 관심사는 `.claude/`의 맞는 폴더에 둔다. 루트에는 새 파일을 만들지 않는다 — 루트는 `CLAUDE.md` 하나로 유지한다. 한 파일이 길어지면 같은 영역의 `ref/` 폴더로 상세를 옮기고 원래 파일은 짧은 인덱스로 남긴다 (`commands/` 하위 `.md`는 모두 커맨드로 등록되므로, 그 상세는 `rules/`처럼 비커맨드 폴더의 `ref/`에 둔다).
 
 ## 5. Skill & Agent Routing
 
