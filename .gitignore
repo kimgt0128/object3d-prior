@@ -55,3 +55,7 @@ mlruns/
 *.glb
 *.npy
 *.npz
+
+# Claude Code 로컬 설정 (개인 권한 캐시 / 임시 worktree)
+.claude/settings.local.json
+.claude/worktrees/
