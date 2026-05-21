@@ -1,0 +1,8 @@
+# 파이프라인 최상위 설정.
+# 각 단계 설정은 별도 파일로 분리하고 여기서 참조만 한다.
+
+# T1: capture 단계 설정 파일.
+capture: configs/capture.yaml
+
+# T2(segmentation), T3(geometry) 등 후속 단계는 자체 섹션을
+# 이 파일에 추가한다. (예: segmentation: configs/segmentation.yaml)
