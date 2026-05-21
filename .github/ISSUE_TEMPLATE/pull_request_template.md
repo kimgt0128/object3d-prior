@@ -1,7 +1,7 @@
 ## 작업 요약
 
 ## 관련 이슈
-- closes #
+- #IssueNumber
 
 ## 변경 내용
 
