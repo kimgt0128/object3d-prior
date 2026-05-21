@@ -1,0 +1,31 @@
+# capture 단계(T1) 설정.
+# 아래 값은 모두 placeholder다. 실제 캡처 세션마다 채워 넣는다.
+# config-driven 실행 로더는 후속 작업에서 추가한다.
+
+# 입력 영상 경로. raw 입력은 data/raw/ 아래에 둔다 (git 추적 제외).
+video_path: data/raw/PLACEHOLDER.mp4
+
+# 원하는 초당 프레임 수. source_fps 이상이면 다운샘플링 없이 전 프레임 유지.
+target_fps: 10.0
+
+# 샘플링된 프레임 이미지를 저장할 디렉터리 (generated intermediate).
+output_dir: data/interim/capture/frames
+
+# 프레임 매니페스트 JSON 경로.
+manifest_path: data/interim/capture/manifest.json
+
+# 캡처 대상 객체 정보. 정확도 검증을 위해 수동 실측값을 함께 기록한다.
+object:
+  # 객체 이름. 박스/책/단순 의자처럼 형태가 단순한 물체를 우선한다.
+  name: PLACEHOLDER_object
+  # 수동 실측 치수 (cm). 정확도 주장은 이 값과 비교할 수 있을 때만 한다.
+  measured_cm:
+    width: 0.0
+    depth: 0.0
+    height: 0.0
+  # 촬영 방식: handheld | tripod | turntable 등.
+  camera_mode: handheld
+  # 조명 조건 메모: indoor_diffuse | studio | window_light 등.
+  lighting: indoor_diffuse
+  # 객체 재질 메모: cardboard | paper | wood 등. 반사가 적은 재질을 우선한다.
+  material: cardboard
