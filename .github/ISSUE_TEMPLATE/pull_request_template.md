@@ -1,12 +1,3 @@
----
-name: PULL_REQUEST_TEMPLATE
-about: Describe this issue template's purpose here.
-title: ''
-labels: ''
-assignees: ''
-
----
-
 ## 작업 요약
 
 ## 관련 이슈
