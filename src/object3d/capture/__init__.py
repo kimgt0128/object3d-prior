@@ -20,7 +20,7 @@ from object3d.capture.manifest import (
 )
 from object3d.capture.pipeline import run_capture
 from object3d.capture.records import CaptureMetadata, FrameRecord
-from object3d.capture.sampling import compute_sample_indices
+from object3d.capture.sampling import FrameSampler, compute_sample_indices
 
 __all__ = [
     "ArrayFrameSource",
@@ -33,5 +33,6 @@ __all__ = [
     "run_capture",
     "CaptureMetadata",
     "FrameRecord",
+    "FrameSampler",
     "compute_sample_indices",
 ]

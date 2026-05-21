@@ -14,7 +14,7 @@ from object3d.capture.frame_source import FrameSource
 from object3d.capture.image_io import save_png_rgb
 from object3d.capture.manifest import build_manifest, write_manifest
 from object3d.capture.records import CaptureMetadata, FrameRecord
-from object3d.capture.sampling import compute_sample_indices
+from object3d.capture.sampling import FrameSampler
 
 # 저장 파일명 규칙 (frame_id 기준 zero-padded).
 _FRAME_NAME = "frame_{frame_id:06d}.png"
@@ -43,18 +43,20 @@ def run_capture(
         ``FrameRecord.image_path``는 매니페스트 파일 위치 기준 상대 경로로
         기록한다. 따라서 출력 디렉터리가 달라도 같은 입력이면 동일한
         매니페스트가 나와 재현성이 보장된다.
+
+        전체 프레임 수에 의존하지 않고 ``iter_frames``를 스트리밍한다.
+        OpenCV가 프레임 수를 보고하지 못하는 가변 프레임레이트 영상이라도
+        프레임을 yield하면 매니페스트가 비지 않는다(Bug 2). 프레임을 0개
+        yield하는 소스만 빈 매니페스트가 정상이다.
     """
     output_dir = os.fspath(output_dir)
     manifest_path = os.fspath(manifest_path)
     manifest_dir = os.path.dirname(os.path.abspath(manifest_path))
 
-    total_frames = len(source)
-    keep = set(
-        compute_sample_indices(
-            total_frames=total_frames,
-            source_fps=source.source_fps,
-            target_fps=target_fps,
-        )
+    # 스트리밍 keep predicate. 전체 프레임 수가 필요 없다.
+    sampler = FrameSampler(
+        source_fps=source.source_fps,
+        target_fps=target_fps,
     )
 
     os.makedirs(output_dir, exist_ok=True)
@@ -62,7 +64,7 @@ def run_capture(
     records = []
     frame_id = 0
     for src_index, timestamp_s, frame in source.iter_frames():
-        if src_index not in keep:
+        if not sampler.should_keep(src_index):
             continue
 
         file_name = _FRAME_NAME.format(frame_id=frame_id)
