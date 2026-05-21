@@ -113,3 +113,79 @@
 ```text
 feat(#issue): 첫 객체 3D prior MVP 파이프라인 추가
 ```
+
+## 라우팅·작업 분해 기록 (2026-05-21)
+
+`/superpowers:writing-plans` dry-run 요청으로 수행한 No-Training MVP 작업 분해다. **코드·Issue·worktree는 아직 생성하지 않았다.** 아래 미해결 결정 3건이 확정되기 전까지 T3·T8 worker brief는 초안 상태로 둔다.
+
+### 라우팅
+
+- 분류: "작업 분해" / 계획 요청 — 파이프라인 코드를 직접 만들지 않으므로 router 키워드 우선순위 #3(구현 흐름) 대신 분류표로 라우팅.
+- 주 담당: **Orchestrator Agent** (메인 세션) — 작업 분해와 멀티에이전트 조율 소유.
+- 지원: Issue Manager(Issue draft, task↔issue 매핑), Git Manager(worktree·branch stack), Research + Integration(계획 정합성).
+- 미래 worker owner: Data Capture / Segmentation / Geometry / Reconstruction / Object Prior / Evaluation / Visualization.
+- 핵심 skill: task-orchestration, issue-worktree-workflow, implementation-planning, anti-pattern-check, decision-brief.
+
+### 8개 작업 ↔ 기존 10단계 매핑
+
+| 작업 | 내용 | 기존 Step | 주 담당 |
+|---|---|---|---|
+| T1 | 입력 영상/프레임 샘플링 | Step 1+2 | Data and Capture Agent |
+| T2 | SAM/SAM2 segmentation adapter | Step 3 (+ Step 4 mask overlay 슬라이스) | Segmentation Agent |
+| T3 | depth/pose adapter (mock/interface) | Step 5 | Geometry Agent |
+| T4 | masked back-projection | Step 6 | Geometry Agent |
+| T5 | object point cloud fusion | Step 7 | Reconstruction Agent |
+| T6 | oriented bbox 및 크기 측정 | Step 8 | Object Prior Agent |
+| T7 | evaluation log | Step 9 | Evaluation Agent |
+| T8 | Open3D/Rerun visualization | Step 4 + Step 10 | Visualization Agent |
+
+### 작업별 write scope (상호 비중첩)
+
+| 작업 | 작성 가능 범위 |
+|---|---|
+| T1 | `src/object3d/capture/**`, `configs/capture.yaml`, `configs/default.yaml`(생성), `tests/capture/**` |
+| T2 | `src/object3d/adapters/segmentation/**`, `configs/models/segmentation.yaml`, `tests/adapters/segmentation/**` |
+| T3 | `src/object3d/adapters/geometry/**`, `configs/models/geometry.yaml`, `tests/adapters/geometry/**` |
+| T4 | `src/object3d/geometry/**`, `tests/geometry/**` |
+| T5 | `src/object3d/reconstruction/**`, `tests/reconstruction/**` |
+| T6 | `src/object3d/priors/**`, `tests/priors/**` |
+| T7 | `src/object3d/evaluation/**`, `docs/experiment_log.md`, `tests/evaluation/**` |
+| T8 | `src/object3d/visualization/**`, `apps/**`, `tests/visualization/**` |
+
+공유 파일 규칙: `configs/default.yaml`은 T1이 생성·고정하고 이후 작업은 자기 모듈 config 파일만 추가한다. root `README.md`/`src/README.md`는 T8(통합 시점)에서 한 번만 갱신한다.
+
+### 의존 그래프
+
+```text
+T1 ──┬─> T2 ──┬─────────────> T8(mask overlay 슬라이스)
+     └─> T3 ──┤
+              └─> T4 ─> T5 ─> T6 ─> T7 ─> T8(최종 데모)
+```
+
+T2 ∥ T3 병렬 가능. T4는 T2·T3 둘 다 필요.
+
+### stacked branch 안
+
+```text
+main
+ └ feat/1-capture
+    ├ feat/2-segmentation-adapter
+    └ feat/3-geometry-adapter
+       └ feat/4-masked-backprojection   (T2·T3 위에 rebase)
+          └ feat/5-pointcloud-fusion
+             └ feat/6-oriented-bbox
+                └ feat/7-evaluation-log
+                   └ feat/8-visualization
+```
+
+### 확정된 결정 (2026-05-21)
+
+1. **Geometry adapter(T3) 범위** — interface + mock 우선. generic `GeometryRecord` contract와 합성 depth/pose mock을 먼저 만들어 T4~T7 downstream을 검증한다. 실모델(MapAnything·VGGT) 연동은 contract 안정 후 별도 후속 작업(T3-follow)으로 분리한다.
+2. **Mask overlay 소유** — Segmentation Agent가 소유. T2가 자기 모듈(`adapters/segmentation/**`) 안에 thin overlay util을 두고 mask 검증 게이트 이미지를 생성한다. T8 Visualization은 최종 데모 단일 owner로 유지하고 작업은 8개를 유지한다.
+3. **첫 geometry 모델 경로** — 미정. 특정 모델에 묶이지 않는 generic contract로 설계하고 모델 선정은 다음 라운드에서 Research Agent가 맡는다.
+
+### 다음 명령 예시
+
+- 결정 확정: "geometry는 interface+mock, mask overlay는 segmentation 소유, 모델 경로는 미정으로 가자"
+- 실행 착수: "T1 capture부터 Issue 만들고 worktree 잡아서 시작해줘"
+- 한 작업만: "T1 입력/프레임 샘플링 작업 폴더랑 worker brief 확정해줘"

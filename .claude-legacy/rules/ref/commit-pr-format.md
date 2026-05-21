@@ -68,9 +68,23 @@ feat(#3): 세션 시간 조정
 docs(#7): 멀티에이전트 라우팅 문서 정리
 ```
 
+## Issue 제목 형식
+
+Issue 제목은 prefix 없이 평문 한글로 쓴다. `[Feat]` 같은 type prefix를 붙이지 않는다.
+
+```text
+<한글 요약>
+```
+
+예시:
+
+```text
+T1: 입력 영상 프레임 샘플링 파이프라인
+```
+
 ## PR 제목 형식
 
-다음 형식을 사용한다.
+`[Type/<issue>-<branch>]: 한글 요약` 형식은 **PR 제목에만** 쓴다. Issue 제목에는 쓰지 않는다.
 
 ```text
 [Type/<issue>-<branch>]: 한글 요약
