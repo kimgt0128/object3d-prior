@@ -23,6 +23,11 @@ class FrameSource(abc.ABC):
 
     구현체는 ``source_fps``를 노출하고, ``iter_frames``로 원본 프레임을
     순서대로 yield해야 한다.
+
+    ``__len__``은 전체 프레임 수를 알 때만 정수를 반환한다. 알 수 없으면
+    ``TypeError``를 던져야 한다. 길이가 불확실한데 0을 조용히 반환하면
+    다운스트림이 빈 매니페스트를 만들 수 있으므로 금지한다. 따라서
+    파이프라인은 길이에 의존하지 말고 ``iter_frames``를 스트리밍해야 한다.
     """
 
     source_fps: float
@@ -34,7 +39,11 @@ class FrameSource(abc.ABC):
 
     @abc.abstractmethod
     def __len__(self) -> int:
-        """전체 프레임 수."""
+        """전체 프레임 수.
+
+        Raises:
+            TypeError: 전체 프레임 수를 알 수 없을 때.
+        """
         raise NotImplementedError
 
 
@@ -91,7 +100,12 @@ class VideoFrameSource(FrameSource):
             raise ValueError(f"invalid source fps reported by video: {fps}")
 
         self.source_fps = float(fps)
-        self._frame_count = int(frame_count) if frame_count and frame_count > 0 else 0
+        # OpenCV가 CAP_PROP_FRAME_COUNT를 보고하지 못하면(가변 프레임레이트
+        # mp4 등) 0을 신뢰하지 않고 None(=unknown)으로 둔다. 0을 그대로
+        # 쓰면 다운스트림이 빈 매니페스트를 조용히 만든다(Bug 2).
+        self._frame_count = (
+            int(frame_count) if frame_count and frame_count > 0 else None
+        )
 
     def iter_frames(self) -> Iterator[FrameTuple]:  # pragma: no cover - 환경 의존
         cv2 = self._cv2
@@ -110,5 +124,16 @@ class VideoFrameSource(FrameSource):
         finally:
             capture.release()
 
-    def __len__(self) -> int:  # pragma: no cover - 환경 의존
+    def __len__(self) -> int:
+        """전체 프레임 수. 알 수 없으면 TypeError를 던진다.
+
+        OpenCV가 프레임 수를 보고하지 못한 경우 조용히 0을 반환하지 않는다.
+        이는 빈 매니페스트가 정상인지 버그인지 구분할 수 없게 만들기
+        때문이다. 파이프라인은 이 값에 의존하지 말고 스트리밍해야 한다.
+        """
+        if self._frame_count is None:
+            raise TypeError(
+                f"frame count is unknown for video: {self.video_path}. "
+                "Stream frames via iter_frames() instead of relying on len()."
+            )
         return self._frame_count
