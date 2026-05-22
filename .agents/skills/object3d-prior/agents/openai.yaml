@@ -1,0 +1,6 @@
+interface:
+  display_name: "Object3d Prior"
+  short_description: "Repo-specific patterns and workflows for object3d-prior"
+  default_prompt: "Use the object3d-prior repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
