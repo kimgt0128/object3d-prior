@@ -12,7 +12,7 @@ from object3d.adapters.segmentation.mock import make_center_box_mask
 from object3d.capture.records import FrameRecord
 from object3d.evaluation.metrics import dimension_errors
 from object3d.geometry.backprojection import backproject_masked_points
-from object3d.priors.bbox import fit_axis_aligned_bbox
+from object3d.priors.bbox import fit_oriented_bbox
 from object3d.reconstruction.fusion import fuse_point_clouds
 from object3d.visualization.export import export_point_cloud_ply
 
@@ -41,7 +41,7 @@ def run_mock_mvp(output_dir: Path) -> dict[str, Any]:
         clouds.append(backproject_masked_points(mask, geometry))
 
     fused = fuse_point_clouds(clouds)
-    prior = fit_axis_aligned_bbox(fused)
+    prior = fit_oriented_bbox(fused)
     measured = np.array([1.0, 1.0, 0.01], dtype=np.float32)
     errors = dimension_errors(prior.dimensions_m, measured)
     ply_path = output_dir / "object_001_cloud.ply"
@@ -49,6 +49,7 @@ def run_mock_mvp(output_dir: Path) -> dict[str, Any]:
 
     return {
         "object_id": prior.object_id,
+        "bbox_type": "oriented",
         "center_xyz": prior.center_xyz.tolist(),
         "axes": prior.axes.tolist(),
         "dimensions_m": prior.dimensions_m.tolist(),

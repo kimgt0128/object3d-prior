@@ -14,7 +14,7 @@
 - `object3d.adapters.geometry.mock`: 실 geometry 모델 연동 전 mock depth/pose adapter
 - `object3d.geometry`: masked back-projection
 - `object3d.reconstruction`: object point cloud fusion
-- `object3d.priors`: bbox 기반 object prior fitting
+- `object3d.priors`: axis-aligned/PCA oriented bbox 기반 object prior fitting
 - `object3d.evaluation`: 실측값 대비 dimension error 계산
 - `object3d.visualization`: point cloud PLY export, mask overlay export
 - `object3d.pipeline`: mock 기반 end-to-end 실행 흐름
@@ -38,6 +38,10 @@ PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp
 
 - `outputs/mock-mvp/summary.json`: 객체 prior, 치수 오차, PLY 경로 요약
 - `outputs/mock-mvp/object_001_cloud.ply`: mock 객체 point cloud
+
+`summary.json`에는 `bbox_type`, `center_xyz`, `axes`, `dimensions_m`,
+`dimension_errors`가 포함된다. 현재 mock MVP는 PCA 기반 `oriented`
+bbox를 기본으로 사용한다.
 
 ## 수동 Prompt Segmentation 실행
 
