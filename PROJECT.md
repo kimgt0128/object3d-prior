@@ -31,6 +31,7 @@ video -> frame sampling -> object mask -> depth/pose contract
 - `src/README.md`: 코드 구조나 모듈 경계를 확인할 때
 - `docs/PLAN.md`: 현재 구현 계획이나 다음 작업 순서를 확인할 때
 - `.serena/project.yml`: Serena 설정이나 코드 분석 MCP 문제가 있을 때
+- `project/agents/code-review.md`: `main` 대상 PR 리뷰 기준과 댓글 흐름을 확인할 때
 - `project/commands/git.md`: 자주 쓰는 Git 명령 흐름을 확인할 때
 - `project/mcp/README.md`: MCP 사용 원칙이나 Serena 설정 흐름을 확인할 때
 - `project/skills/README.md`: 반복 행동을 skill로 승격할지 판단할 때
