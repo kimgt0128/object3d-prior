@@ -19,3 +19,16 @@
 
 첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
 먼저 contract와 downstream geometry pipeline을 검증한 뒤 실제 adapter를 추가한다.
+
+## Mock MVP 실행
+
+아직 패키지 설치 설정을 두지 않았으므로 로컬 실행은 `PYTHONPATH=src`를 붙인다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp
+```
+
+실행하면 다음 산출물이 생성된다.
+
+- `outputs/mock-mvp/summary.json`: 객체 prior, 치수 오차, PLY 경로 요약
+- `outputs/mock-mvp/object_001_cloud.ply`: mock 객체 point cloud
