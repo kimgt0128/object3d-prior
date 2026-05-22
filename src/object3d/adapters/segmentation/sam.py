@@ -66,7 +66,7 @@ def load_sam_predictor(
     *,
     backend: Literal["sam", "sam2"],
     checkpoint_path: Path,
-    model_type: str,
+    model_type: Optional[str] = None,
     config_path: Optional[Path] = None,
     device: str = "cpu",
 ) -> Any:
@@ -76,6 +76,8 @@ def load_sam_predictor(
     실모델 연동 단계에서만 호출한다.
     """
     if backend == "sam":
+        if model_type is None:
+            raise ValueError("model_type is required for sam backend")
         return _load_sam1_predictor(
             checkpoint_path=checkpoint_path,
             model_type=model_type,

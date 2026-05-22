@@ -13,7 +13,7 @@ from object3d.adapters.segmentation.manual import (
     ManualBoxPredictor,
     load_prompt_json,
 )
-from object3d.adapters.segmentation.sam import predict_mask
+from object3d.adapters.segmentation.sam import load_sam_predictor, predict_mask
 from object3d.capture.records import FrameRecord
 from object3d.visualization.mask_overlay import export_mask_overlay
 
@@ -25,8 +25,13 @@ def run_manual_segmentation(
     output_dir: Path,
     object_id: str,
     frame_id: int,
+    backend: str = "manual",
+    checkpoint_path: Path | None = None,
+    config_path: Path | None = None,
+    device: str = "cpu",
+    predictor_loader=None,
 ) -> dict[str, Any]:
-    """수동 prompt를 사용해 mask, overlay, summary를 저장한다."""
+    """prompt를 사용해 mask, overlay, summary를 저장한다."""
     image = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if image is None:
         raise ValueError(f"failed to read image: {image_path}")
@@ -38,11 +43,20 @@ def run_manual_segmentation(
         timestamp_s=0.0,
     )
     prompt = load_prompt_json(prompt_json_path)
+    if predictor_loader is None:
+        predictor_loader = load_sam_predictor
+    predictor = _build_predictor(
+        backend=backend,
+        checkpoint_path=checkpoint_path,
+        config_path=config_path,
+        device=device,
+        predictor_loader=predictor_loader,
+    )
     mask = predict_mask(
         frame,
         image=image,
         object_id=object_id,
-        predictor=ManualBoxPredictor(),
+        predictor=predictor,
         prompt=prompt,
     )
 
@@ -53,6 +67,7 @@ def run_manual_segmentation(
     export_mask_overlay(image, mask.mask, overlay_path)
 
     summary = {
+        "backend": backend,
         "object_id": mask.object_id,
         "frame_id": mask.frame_id,
         "image_path": str(image_path),
@@ -69,3 +84,27 @@ def run_manual_segmentation(
         encoding="utf-8",
     )
     return summary
+
+
+def _build_predictor(
+    *,
+    backend: str,
+    checkpoint_path: Path | None,
+    config_path: Path | None,
+    device: str,
+    predictor_loader,
+):
+    if backend == "manual":
+        return ManualBoxPredictor()
+    if backend == "sam2":
+        if checkpoint_path is None:
+            raise ValueError("checkpoint_path is required for backend='sam2'")
+        if config_path is None:
+            raise ValueError("config_path is required for backend='sam2'")
+        return predictor_loader(
+            backend="sam2",
+            checkpoint_path=checkpoint_path,
+            config_path=config_path,
+            device=device,
+        )
+    raise ValueError("backend must be 'manual' or 'sam2'")

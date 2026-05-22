@@ -15,11 +15,20 @@ def build_parser() -> argparse.ArgumentParser:
         prog="python -m object3d.pipeline.segment_image",
         description="Run manual-prompt segmentation on one image.",
     )
+    parser.add_argument(
+        "--backend",
+        choices=("manual", "sam2"),
+        default="manual",
+        help="Segmentation backend. 'sam2' requires checkpoint/config paths.",
+    )
     parser.add_argument("--image-path", type=Path, required=True)
     parser.add_argument("--prompt-json", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--object-id", default="object_001")
     parser.add_argument("--frame-id", type=int, default=0)
+    parser.add_argument("--checkpoint-path", type=Path)
+    parser.add_argument("--config-path", type=Path)
+    parser.add_argument("--device", default="cpu")
     return parser
 
 
@@ -31,6 +40,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_dir=args.output_dir,
         object_id=args.object_id,
         frame_id=args.frame_id,
+        backend=args.backend,
+        checkpoint_path=args.checkpoint_path,
+        config_path=args.config_path,
+        device=args.device,
     )
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
