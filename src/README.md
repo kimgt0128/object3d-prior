@@ -9,6 +9,7 @@
 - `object3d.capture`: frame sampling, 촬영 metadata, manifest 생성
 - `object3d.contracts`: mask, geometry, point cloud, object prior 데이터 계약
 - `object3d.adapters.segmentation.mock`: SAM/SAM2 연동 전 mock mask adapter
+- `object3d.adapters.segmentation.sam`: SAM/SAM2 predictor 출력을 `MaskRecord`로 변환하는 adapter contract
 - `object3d.adapters.geometry.mock`: 실 geometry 모델 연동 전 mock depth/pose adapter
 - `object3d.geometry`: masked back-projection
 - `object3d.reconstruction`: object point cloud fusion
@@ -19,6 +20,10 @@
 
 첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
 먼저 contract와 downstream geometry pipeline을 검증한 뒤 실제 adapter를 추가한다.
+
+`object3d.adapters.segmentation.sam`은 실제 모델 dependency를 기본 설치에 강제하지 않는다.
+SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화하고,
+실제 predictor 생성은 `load_sam_predictor()`의 optional lazy import 경로로 분리한다.
 
 ## Mock MVP 실행
 
