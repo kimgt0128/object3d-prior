@@ -10,12 +10,13 @@
 - `object3d.contracts`: mask, geometry, point cloud, object prior 데이터 계약
 - `object3d.adapters.segmentation.mock`: SAM/SAM2 연동 전 mock mask adapter
 - `object3d.adapters.segmentation.sam`: SAM/SAM2 predictor 출력을 `MaskRecord`로 변환하는 adapter contract
+- `object3d.adapters.segmentation.manual`: 실제 모델 없이 수동 prompt를 mask로 바꾸는 manual predictor
 - `object3d.adapters.geometry.mock`: 실 geometry 모델 연동 전 mock depth/pose adapter
 - `object3d.geometry`: masked back-projection
 - `object3d.reconstruction`: object point cloud fusion
 - `object3d.priors`: bbox 기반 object prior fitting
 - `object3d.evaluation`: 실측값 대비 dimension error 계산
-- `object3d.visualization`: point cloud PLY export
+- `object3d.visualization`: point cloud PLY export, mask overlay export
 - `object3d.pipeline`: mock 기반 end-to-end 실행 흐름
 
 첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
@@ -37,3 +38,32 @@ PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp
 
 - `outputs/mock-mvp/summary.json`: 객체 prior, 치수 오차, PLY 경로 요약
 - `outputs/mock-mvp/object_001_cloud.ply`: mock 객체 point cloud
+
+## 수동 Prompt Segmentation 실행
+
+실제 SAM/SAM2 설치 전에는 box prompt를 직접 mask로 바꾸는 manual predictor로
+입력/출력 포맷을 검증할 수 있다.
+
+prompt JSON 예시:
+
+```json
+{
+  "box_xyxy": [20, 30, 180, 160]
+}
+```
+
+실행:
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
+  --image-path examples/frame.png \
+  --prompt-json examples/prompt.json \
+  --output-dir outputs/manual-segmentation \
+  --object-id object_001
+```
+
+산출물:
+
+- `outputs/manual-segmentation/mask.npy`
+- `outputs/manual-segmentation/overlay.png`
+- `outputs/manual-segmentation/summary.json`
