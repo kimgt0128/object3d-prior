@@ -1,0 +1,552 @@
+# Instincts generated from https://github.com/kimgt0128/object3d-prior
+# Generated: 2026-05-22T02:41:31.206Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: object3d-prior-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: docs, chore, fix
+
+## Evidence
+
+- 11 commits analyzed
+- Detected conventional commit pattern
+- Examples: docs: .project2 경량 하네스 재구성 설계 문서 추가, chore: 옛 하네스 라우팅 hook 제거
+
+---
+id: object3d-prior-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Commit Length
+
+## Action
+
+Keep commit messages concise (~35 characters)
+
+## Evidence
+
+- Average commit message length: 35 chars
+- Based on 11 commits
+
+---
+id: object3d-prior-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: object3d-prior-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: object3d-prior-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: object3d-prior-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: object3d-prior-workflow-project-harness-refactor-and-migration
+trigger: "when doing project harness refactor and migration"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Workflow Project Harness Refactor And Migration
+
+## Action
+
+Follow the project-harness-refactor-and-migration workflow:
+1. Draft and add a design/specification document in docs/superpowers/specs/
+2. Add an implementation plan in docs/superpowers/plans/
+3. Create or restructure entrypoint files and placeholder READMEs in the new harness directory (e.g., .project2/ or .claude/), including PROJECT.md or CLAUDE.md and subfolders like agents/, skills/, hooks/, rules/, commands/
+4. Update the root CLAUDE.md to point to the new entrypoint
+5. Remove or archive the legacy harness directory (e.g., move .claude/ to .claude-legacy/ and later delete it)
+6. Clean up git tracking for removed or moved files
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: docs/superpowers/specs/*.md, docs/superpowers/plans/*.md, .project2/PROJECT.md
+
+---
+id: object3d-prior-workflow-add-or-update-command-and-rule
+trigger: "when doing add or update command and rule"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kimgt0128/object3d-prior
+---
+
+# Object3d Prior Workflow Add Or Update Command And Rule
+
+## Action
+
+Follow the add-or-update-command-and-rule workflow:
+1. Add or update a rule documentation file in .claude/rules/ (e.g., git.md)
+2. Add or update a command implementation or spec in .claude/commands/ (e.g., git/commit.md)
+3. Update .claude/CLAUDE.md to reference the new command/rule
+4. Remove .gitkeep from commands/ or rules/ if they now contain real files
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: .claude/rules/*.md, .claude/commands/*/*.md, .claude/CLAUDE.md
+
+---
+id: object3d-prior-instinct-file-naming
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct File Naming
+
+## Action
+
+Use kebab-case for file names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- Consistent kebab-case in existing files
+
+---
+id: object3d-prior-instinct-function-naming
+trigger: "When defining a function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: object3d-prior-instinct-class-naming
+trigger: "When defining a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: object3d-prior-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: object3d-prior-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: object3d-prior-instinct-export-style
+trigger: "When exporting from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: object3d-prior-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Test Location
+
+## Action
+
+Place tests in a separate directory from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+
+---
+id: object3d-prior-instinct-git-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Git Commit Format
+
+## Action
+
+Use conventional commit prefixes: docs, chore, or fix
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Examples in commit history
+
+---
+id: object3d-prior-instinct-git-commit-length
+trigger: "When writing a git commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Git Commit Length
+
+## Action
+
+Keep commit message length around 35 characters
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: object3d-prior-instinct-harness-migration-spec
+trigger: "When refactoring or migrating the project harness structure"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Spec
+
+## Action
+
+Draft and add a design/specification document in docs/superpowers/specs/
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-harness-migration-plan
+trigger: "After adding a design/specification document for harness migration"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Plan
+
+## Action
+
+Add an implementation plan in docs/superpowers/plans/
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-harness-migration-create-entry
+trigger: "After implementation plan is added for harness migration"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Create Entry
+
+## Action
+
+Create or restructure entrypoint files and placeholder READMEs in the new harness directory (e.g., .project2/ or .claude/), including PROJECT.md or CLAUDE.md and subfolders like agents/, skills/, hooks/, rules/, commands/
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-harness-migration-update-root
+trigger: "After new harness entrypoint is created"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Update Root
+
+## Action
+
+Update the root CLAUDE.md to point to the new entrypoint
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-harness-migration-archive-legacy
+trigger: "After updating root CLAUDE.md for harness migration"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Archive Legacy
+
+## Action
+
+Remove or archive the legacy harness directory (e.g., move .claude/ to .claude-legacy/ and later delete it)
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-harness-migration-cleanup-git
+trigger: "After archiving or removing legacy harness directory"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Harness Migration Cleanup Git
+
+## Action
+
+Clean up git tracking for removed or moved files
+
+## Evidence
+
+- Step in project-harness-refactor-and-migration workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-add-rule-doc
+trigger: "When introducing a new command and its usage rules to the harness"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Add Rule Doc
+
+## Action
+
+Add or update a rule documentation file in .claude/rules/ (e.g., git.md)
+
+## Evidence
+
+- Step in add-or-update-command-and-rule workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-add-command-spec
+trigger: "After adding or updating a rule documentation file for a new command"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Add Command Spec
+
+## Action
+
+Add or update a command implementation or spec in .claude/commands/ (e.g., git/commit.md)
+
+## Evidence
+
+- Step in add-or-update-command-and-rule workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-update-claude-md
+trigger: "After adding or updating a command or rule"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Update Claude Md
+
+## Action
+
+Update .claude/CLAUDE.md to reference the new command/rule
+
+## Evidence
+
+- Step in add-or-update-command-and-rule workflow
+- Seen in workflow example commits
+
+---
+id: object3d-prior-instinct-remove-gitkeep
+trigger: "After adding real files to commands/ or rules/ directories"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: kimgt0128/object3d-prior
+---
+
+# Object3d Prior Instinct Remove Gitkeep
+
+## Action
+
+Remove .gitkeep from commands/ or rules/ if they now contain real files
+
+## Evidence
+
+- Step in add-or-update-command-and-rule workflow
+- Seen in workflow example commits
+
