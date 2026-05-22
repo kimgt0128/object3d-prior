@@ -4,15 +4,18 @@
 
 초기 목표는 방 전체를 한 번에 복원하는 것이 아니라, 스마트폰 영상 속 단일 객체를 SAM 계열 모델로 추적하고 depth/pose와 결합해 3D object prior를 만드는 것이다.
 
-## 예상 모듈
+## 구현된 MVP 모듈
 
-- `capture/`: frame sampling, 촬영 metadata, 실측값 정리
-- `adapters/`: SAM, MapAnything, VGGT, COLMAP 출력 정규화
-- `geometry/`: back-projection, scale alignment, pose sanity check
-- `reconstruction/`: masked point cloud fusion, outlier filtering
-- `priors/`: bounding box, dimension, orientation, placement 판단
-- `evaluation/`: 실측값 비교, metric, ablation 기록
-- `visualization/`: mask overlay, point cloud, 3D bounding box 시각화
-- `pipeline/`: end-to-end 실행 흐름 연결
+- `object3d.capture`: frame sampling, 촬영 metadata, manifest 생성
+- `object3d.contracts`: mask, geometry, point cloud, object prior 데이터 계약
+- `object3d.adapters.segmentation.mock`: SAM/SAM2 연동 전 mock mask adapter
+- `object3d.adapters.geometry.mock`: 실 geometry 모델 연동 전 mock depth/pose adapter
+- `object3d.geometry`: masked back-projection
+- `object3d.reconstruction`: object point cloud fusion
+- `object3d.priors`: bbox 기반 object prior fitting
+- `object3d.evaluation`: 실측값 대비 dimension error 계산
+- `object3d.visualization`: point cloud PLY export
+- `object3d.pipeline`: mock 기반 end-to-end 실행 흐름
 
-자세한 구조 기준은 `project/references/future-code-layout.md`를 따른다.
+첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
+먼저 contract와 downstream geometry pipeline을 검증한 뒤 실제 adapter를 추가한다.
