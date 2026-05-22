@@ -14,7 +14,7 @@ from object3d.evaluation.metrics import dimension_errors
 from object3d.geometry.backprojection import backproject_masked_points
 from object3d.priors.bbox import fit_oriented_bbox
 from object3d.reconstruction.fusion import fuse_point_clouds
-from object3d.visualization.export import export_point_cloud_ply
+from object3d.visualization.export import export_scene_artifacts
 
 
 def run_mock_mvp(output_dir: Path) -> dict[str, Any]:
@@ -44,8 +44,7 @@ def run_mock_mvp(output_dir: Path) -> dict[str, Any]:
     prior = fit_oriented_bbox(fused)
     measured = np.array([1.0, 1.0, 0.01], dtype=np.float32)
     errors = dimension_errors(prior.dimensions_m, measured)
-    ply_path = output_dir / "object_001_cloud.ply"
-    export_point_cloud_ply(fused, ply_path)
+    scene = export_scene_artifacts(fused, prior, output_dir)
 
     return {
         "object_id": prior.object_id,
@@ -55,6 +54,8 @@ def run_mock_mvp(output_dir: Path) -> dict[str, Any]:
         "dimensions_m": prior.dimensions_m.tolist(),
         "confidence": prior.confidence,
         "dimension_errors": errors,
-        "point_cloud_ply": str(ply_path),
+        "point_cloud_ply": scene["assets"]["point_cloud_ply"],
+        "bbox_ply": scene["assets"]["bbox_ply"],
+        "scene_manifest_json": scene["assets"]["scene_manifest_json"],
         "source_frame_ids": list(fused.source_frame_ids),
     }

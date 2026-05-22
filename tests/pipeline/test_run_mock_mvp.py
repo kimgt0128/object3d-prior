@@ -9,6 +9,8 @@ def test_run_mock_mvp_exports_cloud_and_metrics(tmp_path: Path) -> None:
     assert result["object_id"] == "object_001"
     assert result["bbox_type"] == "oriented"
     assert Path(result["point_cloud_ply"]).exists()
+    assert Path(result["bbox_ply"]).exists()
+    assert Path(result["scene_manifest_json"]).exists()
     assert len(result["dimensions_m"]) == 3
     assert len(result["axes"]) == 3
     assert "absolute_error_m" in result["dimension_errors"]
