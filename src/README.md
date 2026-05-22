@@ -67,3 +67,23 @@ PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
 - `outputs/manual-segmentation/mask.npy`
 - `outputs/manual-segmentation/overlay.png`
 - `outputs/manual-segmentation/summary.json`
+
+## SAM2 Segmentation 실행 경로
+
+SAM2 dependency와 checkpoint/config 파일은 저장소에 포함하지 않는다.
+로컬 환경에 SAM2를 설치하고 checkpoint/config 경로를 준비한 뒤 `sam2` backend를 사용한다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
+  --backend sam2 \
+  --image-path examples/frame.png \
+  --prompt-json examples/prompt.json \
+  --output-dir outputs/sam2-segmentation \
+  --checkpoint-path checkpoints/sam2.1_hiera_tiny.pt \
+  --config-path configs/sam2.1/sam2.1_hiera_t.yaml \
+  --device cpu \
+  --object-id object_001
+```
+
+SAM2가 설치되어 있지 않으면 `OptionalSegmentationDependencyError`로 실패한다.
+이 실패는 의도된 동작이며, 기본 mock/manual pipeline은 SAM2 설치 없이도 계속 동작해야 한다.
