@@ -16,7 +16,7 @@
 - `object3d.reconstruction`: object point cloud fusion
 - `object3d.priors`: axis-aligned/PCA oriented bbox 기반 object prior fitting
 - `object3d.evaluation`: 실측값 대비 dimension error 계산
-- `object3d.visualization`: point cloud PLY, oriented bbox PLY, scene manifest, mask overlay export
+- `object3d.visualization`: point cloud PLY, oriented bbox PLY, scene manifest, optional viewer, mask overlay export
 - `object3d.pipeline`: mock 기반 end-to-end 실행 흐름
 
 첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
@@ -44,6 +44,26 @@ PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp
 `summary.json`에는 `bbox_type`, `center_xyz`, `axes`, `dimensions_m`,
 `dimension_errors`, `point_cloud_ply`, `bbox_ply`, `scene_manifest_json`이 포함된다.
 현재 mock MVP는 PCA 기반 `oriented` bbox를 기본으로 사용한다.
+
+## Scene Viewer 실행
+
+`scene_manifest.json`을 생성한 뒤 dependency 없이 summary를 확인할 수 있다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.visualization.view_scene \
+  --manifest outputs/mock-mvp/scene_manifest.json \
+  --backend summary
+```
+
+Rerun을 설치한 환경에서는 같은 manifest를 Rerun viewer backend로 보낼 수 있다.
+Rerun은 선택 dependency이며 기본 테스트/실행에는 필요하지 않다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.visualization.view_scene \
+  --manifest outputs/mock-mvp/scene_manifest.json \
+  --backend rerun \
+  --spawn
+```
 
 ## 수동 Prompt Segmentation 실행
 

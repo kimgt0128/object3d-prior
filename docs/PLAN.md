@@ -7,61 +7,61 @@
 - capture, segmentation adapter, mock geometry, masked back-projection, point cloud fusion, PCA oriented bbox, evaluation이 연결되어 있다.
 - `segment_image` CLI는 `manual`과 `sam2` backend를 선택할 수 있다.
 - SAM2 tiny checkpoint 기반 실제 CLI smoke는 통과했다.
-- mock MVP는 end-to-end로 summary와 point cloud PLY를 생성한다.
+- mock MVP는 summary, point cloud PLY, oriented bbox PLY, scene manifest를 생성한다.
 
-## 이번 작업: Issue #22 T8 3D scene visualization artifact 생성
+## 이번 작업: Issue #24 T8 scene manifest optional viewer CLI
 
-목표는 Open3D/Rerun viewer를 붙이기 전에, 현재 mock MVP 결과를 3D로 확인할 수 있는 경량 산출물 계약을 만드는 것이다.
-viewer dependency를 필수로 추가하지 않고도 point cloud와 oriented bbox를 함께 확인할 수 있어야 한다.
+목표는 Issue #22에서 만든 `scene_manifest.json`을 실제로 소비하는 viewer CLI를 추가하는 것이다.
+기본 환경에서는 dependency 없이 summary를 출력하고, Rerun이 설치된 경우에만 lazy import로 3D point cloud와 oriented bbox를 로그한다.
 
 ## 작업 범위
 
 수정/생성:
 
-- `src/object3d/visualization/export.py`
-- `tests/visualization/test_export.py`
-- `src/object3d/pipeline/run_mock_mvp.py`
-- `tests/pipeline/test_run_mock_mvp.py`
+- `src/object3d/visualization/view_scene.py`
+- `tests/visualization/test_view_scene.py`
 - `src/README.md`
 - `docs/PLAN.md`
 
 수정하지 않음:
 
-- Open3D/Rerun dependency 필수 추가
-- GUI viewer 구현
+- Rerun/Open3D를 필수 dependency로 추가
+- GUI viewer 자체 구현
 - SAM2/MapAnything/VGGT 추가 연동
 - checkpoint/config 파일 커밋
 - `project/`, `cv_tutorial/`, `reference/`
 
 ## 구현 내용
 
-- `oriented_bbox_corners()`로 `ObjectPrior`의 8개 bbox corner를 계산한다.
-- `export_oriented_bbox_ply()`로 bbox edge가 포함된 ASCII PLY를 저장한다.
-- `export_scene_artifacts()`로 point cloud PLY, bbox PLY, scene manifest JSON을 한 번에 생성한다.
-- mock MVP는 `summary.json`에 `point_cloud_ply`, `bbox_ply`, `scene_manifest_json` 경로를 함께 남긴다.
+- `load_scene_summary()`로 manifest와 asset 존재 여부를 확인한다.
+- `read_ascii_ply()`로 현재 export PLY의 vertices/edges를 읽는다.
+- `view_scene(..., backend="summary")`로 dependency 없는 summary backend를 제공한다.
+- `view_scene(..., backend="rerun")`으로 optional Rerun backend를 제공한다.
+- Rerun이 없으면 `OptionalViewerDependencyError`로 명확히 실패한다.
+- `python -m object3d.visualization.view_scene` CLI를 추가한다.
 
 ## 실행 순서
 
-- [x] Issue #22 생성
-- [x] `feat/22-scene-visualization-artifacts` 브랜치 생성
-- [x] bbox corners/edge PLY 테스트 추가
-- [x] scene manifest 테스트 추가
-- [x] visualization artifact 구현
-- [x] mock MVP에 scene artifact 연결
+- [x] Issue #24 생성
+- [x] `feat/24-optional-scene-viewer` 브랜치 생성
+- [x] scene summary 테스트 추가
+- [x] fake rerun module 기반 lazy backend 테스트 추가
+- [x] viewer CLI 테스트 추가
+- [x] summary/rerun backend 구현
 - [x] 전체 테스트 실행
-- [x] mock MVP CLI smoke 실행
+- [x] mock MVP → viewer summary smoke 실행
 - [ ] 커밋, 푸시, PR 생성
 
 ## 검증 결과
 
-- `PYTHONPATH=src python3 -m pytest tests/visualization/test_export.py -q` → 4 passed
-- `PYTHONPATH=src python3 -m pytest tests/pipeline/test_run_mock_mvp.py tests/visualization/test_export.py -q` → 5 passed
-- `PYTHONPATH=src python3 -m pytest -q` → 70 passed
+- `PYTHONPATH=src python3 -m pytest tests/visualization/test_view_scene.py -q` → 6 passed
+- `PYTHONPATH=src python3 -m pytest -q` → 76 passed
 - `python3 -m compileall src` → 통과
-- `PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp-scene` → `point_cloud_ply`, `bbox_ply`, `scene_manifest_json` 생성
+- `PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp-viewer` → scene artifact 생성
+- `PYTHONPATH=src python3 -m object3d.visualization.view_scene --manifest outputs/mock-mvp-viewer/scene_manifest.json --backend summary` → asset 존재 summary 출력
 
 ## 다음 후보
 
-1. Open3D 또는 Rerun optional viewer CLI 추가
-2. 실제 사용자 이미지 1장으로 SAM2 prompt smoke 실행
-3. MapAnything/VGGT depth/pose adapter contract 추가
+1. 실제 사용자 이미지 1장으로 SAM2 prompt smoke 실행
+2. MapAnything/VGGT depth/pose adapter contract 추가
+3. Rerun 설치 환경에서 실제 viewer 렌더링 확인
