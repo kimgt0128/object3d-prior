@@ -73,8 +73,25 @@ PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
 SAM2 dependency와 checkpoint/config 파일은 저장소에 포함하지 않는다.
 로컬 환경에 SAM2를 설치하고 checkpoint/config 경로를 준비한 뒤 `sam2` backend를 사용한다.
 
+예시 설치:
+
 ```bash
-PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
+uv venv .venv --python /opt/homebrew/bin/python3.11
+uv pip install --python .venv/bin/python torch torchvision opencv-python \
+  'git+https://github.com/facebookresearch/sam2.git'
+```
+
+예시 checkpoint 준비:
+
+```bash
+mkdir -p checkpoints
+curl -L \
+  -o checkpoints/sam2.1_hiera_tiny.pt \
+  https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt
+```
+
+```bash
+PYTHONPATH=src .venv/bin/python -m object3d.pipeline.segment_image \
   --backend sam2 \
   --image-path examples/frame.png \
   --prompt-json examples/prompt.json \
@@ -84,6 +101,9 @@ PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
   --device cpu \
   --object-id object_001
 ```
+
+`--config-path`는 SAM2 package 기준 상대 경로를 권장한다.
+설치된 package 내부 config 절대 경로를 넘긴 경우에도 adapter가 package 상대 경로로 정규화한다.
 
 SAM2가 설치되어 있지 않으면 `OptionalSegmentationDependencyError`로 실패한다.
 이 실패는 의도된 동작이며, 기본 mock/manual pipeline은 SAM2 설치 없이도 계속 동작해야 한다.

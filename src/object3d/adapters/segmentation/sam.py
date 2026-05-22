@@ -147,8 +147,25 @@ def _load_sam2_predictor(
         ) from error
 
     model = build_sam2(
-        str(config_path),
+        _normalize_sam2_model_cfg(config_path),
         str(checkpoint_path),
         device=device,
     )
     return SAM2ImagePredictor(model)
+
+
+def _normalize_sam2_model_cfg(config_path: Path) -> str:
+    """SAM2 package 내부 config 절대경로를 Hydra 상대경로로 변환한다."""
+    if not config_path.is_absolute():
+        return config_path.as_posix()
+
+    try:
+        import sam2
+    except ImportError:
+        return config_path.as_posix()
+
+    package_root = Path(sam2.__file__).resolve().parent
+    try:
+        return config_path.resolve().relative_to(package_root).as_posix()
+    except ValueError:
+        return config_path.as_posix()
