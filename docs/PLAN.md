@@ -58,7 +58,7 @@ PYTHONPATH=src python3 -m object3d.pipeline --output-dir outputs/mock-mvp
 - [x] `python3 -m pytest -q` 실행
 - [x] `python3 -m compileall src` 실행
 - [x] `serena project health-check` 실행
-- [ ] 커밋, 푸시, PR 생성
+- [x] 커밋, 푸시, PR 생성
 
 ## 다음 후보
 
