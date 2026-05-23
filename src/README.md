@@ -104,6 +104,29 @@ PYTHONPATH=src python3 -m object3d.pipeline.segment_image \
 - `outputs/manual-segmentation/overlay.png`
 - `outputs/manual-segmentation/summary.json`
 
+## Segmentation 결과를 3D Prior로 변환
+
+`segment_image`가 만든 `summary.json`을 다음 단계 입력으로 넘기면,
+잘라낸 객체 mask를 mock depth 평면에 올려 3D point cloud와 bbox를 만들 수 있다.
+쉽게 말하면 "2D로 자른 객체"를 "3D 크기 추정" 단계로 넘기는 명령이다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
+  --segmentation-summary outputs/manual-segmentation/summary.json \
+  --output-dir outputs/prior-from-mask \
+  --depth-m 2.0
+```
+
+현재 `--depth-m`은 실제 depth 모델이 붙기 전 임시 깊이 값이다.
+그래도 mask, back-projection, bbox, scene artifact 흐름을 한 번에 검증할 수 있다.
+
+산출물:
+
+- `outputs/prior-from-mask/summary.json`
+- `outputs/prior-from-mask/object_001_cloud.ply`
+- `outputs/prior-from-mask/object_001_bbox.ply`
+- `outputs/prior-from-mask/scene_manifest.json`
+
 ## SAM2 Segmentation 실행 경로
 
 SAM2 dependency와 checkpoint/config 파일은 저장소에 포함하지 않는다.
