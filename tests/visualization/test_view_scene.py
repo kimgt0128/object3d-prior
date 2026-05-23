@@ -113,6 +113,51 @@ def test_view_scene_rerun_backend_uses_lazy_dependency(
     assert ("object_001/bbox", "LineStrips3D") in seen["logs"]
 
 
+def test_view_scene_rerun_backend_can_save_recording(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_scene(tmp_path)
+    recording_path = tmp_path / "scene.rrd"
+    seen: dict[str, object] = {"logs": []}
+    rerun_module = types.ModuleType("rerun")
+
+    def init(app_id: str, spawn: bool = False) -> None:
+        seen["app_id"] = app_id
+        seen["spawn"] = spawn
+
+    def save(path: str) -> None:
+        seen["save"] = path
+
+    def log(path: str, item) -> None:
+        seen["logs"].append((path, item.__class__.__name__))
+
+    class Points3D:
+        def __init__(self, points) -> None:
+            self.points = points
+
+    class LineStrips3D:
+        def __init__(self, strips) -> None:
+            self.strips = strips
+
+    rerun_module.init = init
+    rerun_module.save = save
+    rerun_module.log = log
+    rerun_module.Points3D = Points3D
+    rerun_module.LineStrips3D = LineStrips3D
+    monkeypatch.setitem(sys.modules, "rerun", rerun_module)
+
+    summary = view_scene(
+        manifest_path,
+        backend="rerun",
+        save_rrd=recording_path,
+    )
+
+    assert summary["backend"] == "rerun"
+    assert summary["rerun_rrd"] == str(recording_path)
+    assert seen["save"] == str(recording_path)
+
+
 def test_view_scene_rerun_backend_reports_missing_dependency(
     monkeypatch,
     tmp_path: Path,
@@ -143,3 +188,35 @@ def test_view_scene_cli_prints_summary(
     assert exit_code == 0
     assert stdout["backend"] == "summary"
     assert stdout["object_id"] == "object_001"
+
+
+def test_view_scene_cli_accepts_save_rrd(
+    capsys,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_scene(tmp_path)
+    recording_path = tmp_path / "scene.rrd"
+    rerun_module = types.ModuleType("rerun")
+    rerun_module.init = lambda app_id, spawn=False: None
+    rerun_module.save = lambda path: None
+    rerun_module.log = lambda path, item: None
+    rerun_module.Points3D = lambda points: points
+    rerun_module.LineStrips3D = lambda strips: strips
+    monkeypatch.setitem(sys.modules, "rerun", rerun_module)
+
+    exit_code = main(
+        [
+            "--manifest",
+            str(manifest_path),
+            "--backend",
+            "rerun",
+            "--save-rrd",
+            str(recording_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert stdout["backend"] == "rerun"
+    assert stdout["rerun_rrd"] == str(recording_path)

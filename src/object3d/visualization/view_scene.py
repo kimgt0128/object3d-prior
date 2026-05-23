@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import argparse
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Sequence
@@ -77,6 +77,7 @@ def view_scene(
     backend: Literal["summary", "rerun"] = "summary",
     app_id: str = "object3d-prior",
     spawn: bool = False,
+    save_rrd: Path | None = None,
 ) -> dict[str, Any]:
     """scene manifest를 선택 backend로 연다."""
     summary = load_scene_summary(manifest_path)
@@ -84,8 +85,10 @@ def view_scene(
         summary["backend"] = "summary"
         return summary
     if backend == "rerun":
-        _log_rerun_scene(summary, app_id=app_id, spawn=spawn)
+        _log_rerun_scene(summary, app_id=app_id, spawn=spawn, save_rrd=save_rrd)
         summary["backend"] = "rerun"
+        if save_rrd is not None:
+            summary["rerun_rrd"] = str(save_rrd)
         return summary
     raise ValueError("backend must be 'summary' or 'rerun'")
 
@@ -118,6 +121,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Ask Rerun to spawn a viewer process.",
     )
+    parser.add_argument(
+        "--save-rrd",
+        type=Path,
+        default=None,
+        help="Optional path where Rerun should save a .rrd recording.",
+    )
     return parser
 
 
@@ -129,12 +138,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         backend=args.backend,
         app_id=args.app_id,
         spawn=args.spawn,
+        save_rrd=args.save_rrd,
     )
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
 
 
-def _log_rerun_scene(summary: dict[str, Any], *, app_id: str, spawn: bool) -> None:
+def _log_rerun_scene(
+    summary: dict[str, Any],
+    *,
+    app_id: str,
+    spawn: bool,
+    save_rrd: Path | None,
+) -> None:
     try:
         import rerun as rr
     except ImportError as error:
@@ -153,6 +169,9 @@ def _log_rerun_scene(summary: dict[str, Any], *, app_id: str, spawn: bool) -> No
     ]
 
     rr.init(app_id, spawn=spawn)
+    if save_rrd is not None:
+        save_rrd.parent.mkdir(parents=True, exist_ok=True)
+        rr.save(str(save_rrd))
     rr.log(f"{object_id}/points", rr.Points3D(point_cloud.vertices))
     rr.log(f"{object_id}/bbox", rr.LineStrips3D(bbox_strips))
 
