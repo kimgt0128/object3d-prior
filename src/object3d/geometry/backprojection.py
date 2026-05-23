@@ -38,8 +38,10 @@ def backproject_masked_points(
     y = (v_coords.astype(np.float32) - cy) * depth / fy
     z = depth
 
-    camera_points = np.stack([x, y, z, np.ones_like(z)], axis=1)
-    world_points = (geometry.camera_to_world @ camera_points.T).T[:, :3]
+    camera_points = np.stack([x, y, z], axis=1)
+    rotation = geometry.camera_to_world[:3, :3]
+    translation = geometry.camera_to_world[:3, 3]
+    world_points = camera_points @ rotation.T + translation
 
     return PointCloudRecord(
         object_id=mask.object_id,
