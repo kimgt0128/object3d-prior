@@ -127,6 +127,36 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
 - `outputs/prior-from-mask/object_001_bbox.ply`
 - `outputs/prior-from-mask/scene_manifest.json`
 
+## SAM2 결과를 3D Prior까지 연결
+
+SAM2로 만든 `summary.json`도 같은 방식으로 3D prior 단계에 넣을 수 있다.
+즉, "SAM2가 자른 객체"를 바로 "3D 점구름과 bbox"로 바꿔볼 수 있다.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m object3d.pipeline.segment_image \
+  --backend sam2 \
+  --image-path examples/frame.png \
+  --prompt-json examples/prompt.json \
+  --output-dir outputs/sam2-to-prior/segmentation \
+  --checkpoint-path checkpoints/sam2.1_hiera_tiny.pt \
+  --config-path configs/sam2.1/sam2.1_hiera_t.yaml \
+  --device cpu \
+  --object-id object_001
+
+PYTHONPATH=src .venv/bin/python -m object3d.pipeline.prior_from_mask \
+  --segmentation-summary outputs/sam2-to-prior/segmentation/summary.json \
+  --output-dir outputs/sam2-to-prior/prior \
+  --depth-m 2.0
+
+PYTHONPATH=src .venv/bin/python -m object3d.visualization.view_scene \
+  --manifest outputs/sam2-to-prior/prior/scene_manifest.json \
+  --backend rerun \
+  --save-rrd outputs/sam2-to-prior/prior/sam2-to-prior.rrd
+```
+
+마지막 명령은 나중에 다시 열어볼 수 있는 Rerun 3D 장면 파일을 만든다.
+이 파일도 `outputs/` 아래에 생기므로 git에는 커밋하지 않는다.
+
 ## SAM2 Segmentation 실행 경로
 
 SAM2 dependency와 checkpoint/config 파일은 저장소에 포함하지 않는다.
