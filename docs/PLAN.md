@@ -48,6 +48,7 @@
 - mask pixels: `20959`
 - generated 3D points: `20959`
 - recording file size: 약 `126KB`
+- 실제 사용자 사진 3장/9개 물체 후보 검증 기록: `docs/validation/20260524-real-photo-sam2-object-prior.md`
 
 ## 다음 후보
 
