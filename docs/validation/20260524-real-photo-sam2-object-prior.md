@@ -26,6 +26,10 @@
 
 ## 결과 요약
 
+아래 이미지는 9개 후보 물체의 SAM2 overlay 결과를 한 장으로 묶은 contact sheet다.
+
+![실제 사진 SAM2 overlay contact sheet](assets/20260524-real-photo-sam2-overlay-contact-sheet.jpg)
+
 | 케이스 | 대상 | 판단 | SAM2 confidence | mask pixels | point count | Rerun | 메모 |
 |---|---|---:|---:|---:|---:|---|---|
 | `162710_cup` | 큰 투명 컵 | 주의 | 0.708 | 1,309,921 | 1,309,921 | 7.0MB | 컵 몸체는 잡았지만 투명 재질과 탁자 일부가 섞였다. |
