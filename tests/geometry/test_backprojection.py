@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 from object3d.contracts import GeometryRecord, MaskRecord
@@ -40,3 +42,19 @@ def test_backproject_masked_points_applies_camera_to_world_translation() -> None
         cloud.points_xyz,
         np.array([[10.0, 20.0, 31.0]], dtype=np.float32),
     )
+
+
+def test_backproject_many_masked_points_without_runtime_warning() -> None:
+    depth = np.full((80, 120), 2.0, dtype=np.float32)
+    intrinsics = np.array(
+        [[120.0, 0.0, 60.0], [0.0, 120.0, 40.0], [0.0, 0.0, 1.0]],
+        dtype=np.float32,
+    )
+    geometry = GeometryRecord(0, depth, intrinsics, np.eye(4, dtype=np.float32))
+    mask_array = np.zeros((80, 120), dtype=bool)
+    mask_array[20:60, 30:90] = True
+    mask = MaskRecord(0, "object_001", mask_array, 1.0)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        backproject_masked_points(mask, geometry)
