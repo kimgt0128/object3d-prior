@@ -127,6 +127,36 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
 - `outputs/prior-from-mask/object_001_bbox.ply`
 - `outputs/prior-from-mask/scene_manifest.json`
 
+## 대표 Smoke Fixture 생성
+
+실제 사용자 사진은 저장소에 커밋하지 않는다. 대신 실제 사진 검증에서
+안정적이었던 대표 케이스를 synthetic 이미지와 prompt로 재현해 smoke
+test에 사용한다.
+
+현재 대표 성공 케이스는 다음 3개다.
+
+- 노트북
+- 영수증
+- 태블릿+키보드
+
+fixture 생성:
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.generate_smoke_fixtures \
+  --output-dir outputs/representative-smoke-fixtures
+```
+
+생성되는 파일:
+
+- `outputs/representative-smoke-fixtures/manifest.json`
+- `outputs/representative-smoke-fixtures/<case_id>/image.png`
+- `outputs/representative-smoke-fixtures/<case_id>/prompt.json`
+- `outputs/representative-smoke-fixtures/<case_id>/metadata.json`
+
+이 fixture는 실제 치수 검증용이 아니다. 원본 개인 사진 없이도
+`segment_image -> prior_from_mask` 흐름을 반복 검증하기 위한
+작은 재현 입력이다.
+
 ## SAM2 결과를 3D Prior까지 연결
 
 SAM2로 만든 `summary.json`도 같은 방식으로 3D prior 단계에 넣을 수 있다.

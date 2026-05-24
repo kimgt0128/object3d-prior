@@ -114,19 +114,17 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **PR #32 merge**
-   - 실제 사진 검증 기록과 결과 이미지를 main에 반영한다.
-2. **대표 smoke fixture 정리**
-   - 노트북, 영수증, 태블릿+키보드를 대표 성공 케이스로 고정한다.
+1. **대표 smoke fixture 정리**
+   - 진행 중: 노트북, 영수증, 태블릿+키보드를 synthetic 대표 성공 fixture로 고정한다.
    - 원본 개인 사진은 커밋하지 않는다.
-   - 필요하면 anonymized/cropped fixture 또는 synthetic fixture를 따로 만든다.
-3. **실제 depth/pose adapter 설계**
+   - `python -m object3d.pipeline.generate_smoke_fixtures`로 재현 가능한 fixture를 생성한다.
+2. **실제 depth/pose adapter 설계**
    - MapAnything/VGGT/COLMAP 중 하나를 바로 붙이기 전에 `GeometryRecord` contract를 다시 점검한다.
    - 지금 mock depth로 연결된 부분을 실제 depth map과 camera pose로 대체할 준비를 한다.
-4. **실측값 기반 evaluation 강화**
+3. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
-5. **주의/실패 케이스를 별도 risk set으로 관리**
+4. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
 
