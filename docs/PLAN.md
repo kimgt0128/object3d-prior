@@ -11,6 +11,7 @@
 - 프로젝트 목적/서비스 설명: `docs/README.md`
 - 실제 사진 SAM2 검증 상세: `docs/validation/20260524-real-photo-sam2-object-prior.md`
 - PR에서 바로 볼 검증 이미지: `docs/validation/assets/20260524-real-photo-sam2-overlay-contact-sheet.jpg`
+- 대표 fixture file geometry smoke 이미지: `docs/validation/assets/20260526-representative-fixture-geometry-smoke.jpg`
 
 ## 현재 상태
 
@@ -23,6 +24,7 @@
 - 실제 SAM2 checkpoint를 사용해 synthetic image와 실제 사용자 사진 모두에서 smoke 검증을 수행했다.
 - 실제 사진 3장, 물체 후보 9개를 대상으로 성공/주의/실패 케이스를 분리해 기록했다.
 - 노트북, 영수증, 태블릿+키보드는 원본 개인 사진 없이 재현 가능한 synthetic smoke fixture로 고정했다.
+- 대표 synthetic smoke fixture는 각 case별 `geometry.npz`도 함께 생성해 file geometry 경로까지 회귀 테스트할 수 있다.
 
 ## 현재 단계
 
@@ -53,7 +55,8 @@
 - PR #31: synthetic image 기반 SAM2 -> 3D prior -> Rerun recording 검증
 - PR #32: 실제 사용자 사진 3장/9개 물체 후보 기반 SAM2 -> 3D prior 검증 문서화
 - PR #35: 대표 smoke fixture 생성기 추가
-- 진행 중 #36: 실제 depth/pose 입력 전 `.npz` file geometry adapter 준비
+- PR #37 / #36: 실제 depth/pose 입력 전 `.npz` file geometry adapter 준비
+- 이슈 #38: 대표 smoke fixture와 file geometry 결합 smoke
 
 계속 제외하는 것:
 
@@ -69,8 +72,8 @@
 |---|---:|---|
 | T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있다. |
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
-| T3 Geometry adapter | 일부 구현 | mock geometry와 `.npz` file geometry loader가 있다. 실제 MapAnything/VGGT/COLMAP depth/pose adapter는 아직 없다. |
-| T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반이다. |
+| T3 Geometry adapter | 일부 구현 | mock geometry와 `.npz` file geometry loader가 있다. 대표 fixture용 synthetic file geometry smoke도 있다. 실제 MapAnything/VGGT/COLMAP depth/pose adapter는 아직 없다. |
+| T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반으로 검증한다. |
 | T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직은 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
 | T7 Evaluation | 구현됨 | 기본 metric 계산 구조가 있다. 실제 실측값 기반 검증은 다음 단계에서 강화해야 한다. |
@@ -93,6 +96,11 @@
   - 성공 대표 후보: 노트북, 영수증, 태블릿+키보드
   - 주의 후보: 투명 컵, 부분 컵, 태블릿 화면
   - 실패 후보: 빨대, 첫 번째 영수증 prompt
+- 대표 fixture + file geometry smoke
+  - 노트북, 영수증, 태블릿+키보드 synthetic fixture 검증
+  - 각 fixture가 `geometry.npz`를 함께 생성
+  - `segment_image -> prior_from_mask --geometry-npz` 경로 테스트
+  - 결과 이미지: `docs/validation/assets/20260526-representative-fixture-geometry-smoke.jpg`
 
 ## 실패/주의 케이스 개선 메모
 
@@ -118,17 +126,14 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **실제 depth/pose adapter 설계**
-   - 진행 중: MapAnything/VGGT/COLMAP 중 하나를 바로 붙이기 전에 `GeometryRecord` contract와 `.npz` file geometry adapter를 안정화한다.
-   - 외부 모델 산출물은 우선 `depth_m`, `intrinsics`, `camera_to_world` key를 가진 `.npz`로 정규화한다.
-   - `prior_from_mask --geometry-npz`로 mock depth를 실제 depth map과 camera pose로 대체할 준비를 한다.
-2. **대표 smoke fixture와 file geometry 결합 smoke**
-   - 완료된 대표 fixture(노트북, 영수증, 태블릿+키보드)를 사용해 `segment_image -> prior_from_mask --geometry-npz` 흐름을 검증한다.
-   - 원본 개인 사진은 커밋하지 않는다.
-3. **실측값 기반 evaluation 강화**
+1. **실제 depth/pose adapter 선택 및 구현**
+   - MapAnything/VGGT/COLMAP 중 하나를 먼저 선택한다.
+   - 선택한 backend 산출물을 `depth_m`, `intrinsics`, `camera_to_world` key를 가진 `.npz`로 정규화한다.
+   - `prior_from_mask --geometry-npz`로 mock depth를 실제 depth map과 camera pose로 대체한다.
+2. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
-4. **주의/실패 케이스를 별도 risk set으로 관리**
+3. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
 
