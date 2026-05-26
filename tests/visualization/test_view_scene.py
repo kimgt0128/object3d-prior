@@ -169,6 +169,27 @@ def test_view_scene_rerun_backend_reports_missing_dependency(
         view_scene(manifest_path, backend="rerun")
 
 
+def test_view_scene_rerun_backend_reports_missing_viewer_on_spawn(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_scene(tmp_path)
+    rerun_module = types.ModuleType("rerun")
+
+    def init(app_id: str, spawn: bool = False) -> None:
+        del app_id, spawn
+        raise RuntimeError("Failed to find Rerun Viewer executable in PATH.")
+
+    rerun_module.init = init
+    rerun_module.log = lambda path, item: None
+    rerun_module.Points3D = lambda points: points
+    rerun_module.LineStrips3D = lambda strips: strips
+    monkeypatch.setitem(sys.modules, "rerun", rerun_module)
+
+    with pytest.raises(OptionalViewerDependencyError, match="Rerun Viewer executable"):
+        view_scene(manifest_path, backend="rerun", spawn=True)
+
+
 def test_view_scene_cli_prints_summary(
     capsys,
     tmp_path: Path,

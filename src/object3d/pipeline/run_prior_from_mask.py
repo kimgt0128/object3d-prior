@@ -49,10 +49,16 @@ def run_prior_from_mask(
         depth_m=depth_m,
         geometry_npz_path=geometry_npz_path,
     )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mask, mask_summary = _align_mask_to_geometry(
+        mask=mask,
+        geometry=geometry,
+        source_mask_path=mask_path,
+        output_dir=output_dir,
+    )
     cloud = backproject_masked_points(mask, geometry)
     prior = fit_oriented_bbox(cloud)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
     scene = export_scene_artifacts(cloud, prior, output_dir)
     summary_path = output_dir / "summary.json"
     summary = {
@@ -74,6 +80,7 @@ def run_prior_from_mask(
         "scene_manifest_json": scene["assets"]["scene_manifest_json"],
         "summary_json": str(summary_path),
     }
+    summary.update(mask_summary)
     summary.update(geometry_summary)
     summary_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -116,3 +123,64 @@ def _load_geometry(
         "geometry_source": "mock",
         "depth_m": float(depth_m),
     }
+
+
+def _align_mask_to_geometry(
+    *,
+    mask: MaskRecord,
+    geometry: GeometryRecord,
+    source_mask_path: Path,
+    output_dir: Path,
+) -> tuple[MaskRecord, dict[str, Any]]:
+    input_shape = tuple(int(value) for value in mask.mask.shape)
+    geometry_shape = tuple(int(value) for value in geometry.depth_m.shape)
+    if input_shape == geometry_shape:
+        return mask, {
+            "mask_alignment": "native",
+            "mask_npy": str(source_mask_path),
+            "input_mask_shape": list(input_shape),
+            "geometry_depth_shape": list(geometry_shape),
+            "effective_mask_shape": list(input_shape),
+            "source_mask_npy": str(source_mask_path),
+        }
+
+    resized_mask = _resize_bool_mask_nearest(mask.mask, geometry_shape)
+    resized_mask_path = output_dir / "mask_geometry_shape.npy"
+    np.save(resized_mask_path, resized_mask)
+    return (
+        MaskRecord(
+            frame_id=mask.frame_id,
+            object_id=mask.object_id,
+            mask=resized_mask,
+            confidence=mask.confidence,
+        ),
+        {
+            "mask_alignment": "resized_to_geometry",
+            "mask_npy": str(resized_mask_path),
+            "input_mask_shape": list(input_shape),
+            "geometry_depth_shape": list(geometry_shape),
+            "effective_mask_shape": list(geometry_shape),
+            "source_mask_npy": str(source_mask_path),
+            "resized_mask_npy": str(resized_mask_path),
+        },
+    )
+
+
+def _resize_bool_mask_nearest(
+    mask: np.ndarray,
+    target_shape: tuple[int, int],
+) -> np.ndarray:
+    source_height, source_width = mask.shape
+    target_height, target_width = target_shape
+    if target_height <= 0 or target_width <= 0:
+        raise ValueError("target mask shape must be positive")
+
+    y_indices = np.minimum(
+        (np.arange(target_height) * source_height / target_height).astype(int),
+        source_height - 1,
+    )
+    x_indices = np.minimum(
+        (np.arange(target_width) * source_width / target_width).astype(int),
+        source_width - 1,
+    )
+    return np.asarray(mask[np.ix_(y_indices, x_indices)], dtype=bool)
