@@ -178,11 +178,14 @@ PYTHONPATH=src python3 -m object3d.pipeline.generate_smoke_fixtures \
 - `outputs/representative-smoke-fixtures/manifest.json`
 - `outputs/representative-smoke-fixtures/<case_id>/image.png`
 - `outputs/representative-smoke-fixtures/<case_id>/prompt.json`
+- `outputs/representative-smoke-fixtures/<case_id>/geometry.npz`
 - `outputs/representative-smoke-fixtures/<case_id>/metadata.json`
 
 이 fixture는 실제 치수 검증용이 아니다. 원본 개인 사진 없이도
-`segment_image -> prior_from_mask` 흐름을 반복 검증하기 위한
-작은 재현 입력이다.
+`segment_image -> prior_from_mask`와
+`segment_image -> prior_from_mask --geometry-npz` 흐름을 반복 검증하기 위한
+작은 재현 입력이다. `geometry.npz`는 실제 모델 산출물이 아니라 file geometry
+adapter 경로를 고정하기 위한 synthetic depth/pose fixture다.
 
 ## SAM2 결과를 3D Prior까지 연결
 
