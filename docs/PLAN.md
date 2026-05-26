@@ -18,6 +18,7 @@
 - 실제 노트북 VGGT MPS smoke 검증: `docs/validation/20260526-real-laptop-vggt-mps-smoke.md`
 - 실제 노트북 SAM2 + VGGT mask smoke 검증: `docs/validation/20260526-real-laptop-sam2-vggt-mask-smoke.md`
 - 실제 노트북 point cloud outlier filter smoke 검증: `docs/validation/20260526-real-laptop-outlier-filter-smoke.md`
+- 실제 노트북 multi-view VGGT validation: `docs/validation/20260526-real-laptop-multiview-vggt-validation.md`
 
 ## 현재 상태
 
@@ -40,6 +41,7 @@
 - mask/depth shape mismatch, macOS image permission, Rerun viewer PATH 문제는 코드와 runbook에 반영했다.
 - 같은 노트북 사진에 SAM2 mask를 적용해 manual box보다 effective point count를 26.5% 줄였다.
 - SAM2 + VGGT point cloud에 radial percentile outlier filter를 적용해 bbox 최대 축을 31.2% 줄였다.
+- 노트북 사진 5장 few-view VGGT validation을 수행했고, per-view 3D prior는 생성되지만 view별 bbox 치수가 크게 흔들리는 것을 확인했다.
 
 ## 현재 단계
 
@@ -79,6 +81,7 @@
 - 이슈 #48: VGGT smoke 트러블슈팅 후속 코드/문서 반영
 - T17: 실제 노트북 SAM2 mask + VGGT downstream smoke
 - T18: 실제 노트북 point cloud outlier filter smoke
+- T19: 실제 노트북 5장 multi-view VGGT validation
 
 계속 제외하는 것:
 
@@ -133,6 +136,12 @@
   - radial percentile filter로 point 5.0% 제거
   - bbox 최대 축 31.2% 감소, bbox volume 후보 38.5% 감소
   - 결과 이미지: `docs/validation/assets/20260526-real-laptop-outlier-filter-3d-comparison.jpg`
+- 실제 노트북 5장 multi-view VGGT validation
+  - VGGT few-view inference 1회로 view별 `geometry.npz` 생성
+  - view별 SAM2 mask와 outlier-filtered prior 생성
+  - 같은 노트북인데 largest bbox axis가 `0.334m`부터 `0.508m`까지 흔들림
+  - 결론: per-view object prior는 가능하지만 일반적인 clean 3D object extraction으로 보기는 아직 부족
+  - 결과 이미지: `docs/validation/assets/20260526-real-laptop-multiview-sam2-overlays.jpg`, `docs/validation/assets/20260526-real-laptop-multiview-3d-priors.jpg`
 
 ## 실패/주의 케이스 개선 메모
 
@@ -158,16 +167,19 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **Image #1/#3/#4 multi-view VGGT smoke**
-   - 단일 이미지 depth 한계를 확인했으므로 여러 각도 입력으로 pose/depth 안정성이 나아지는지 본다.
-   - 성공하면 PR에는 원본/대용량 산출물 대신 작은 overlay/contact sheet와 summary를 포함한다.
-2. **실측값 기반 evaluation 강화**
+1. **Object-aware multi-view fusion**
+   - 현재는 multi-view VGGT를 돌려도 view별 prior를 따로 만든다.
+   - 다음 단계는 같은 object id의 view별 point cloud를 하나의 world/object frame으로 합치는 것이다.
+2. **Open laptop subpart segmentation**
+   - 열린 노트북은 화면과 본체가 꺾인 두 평면 구조라 단일 bbox가 불안정하다.
+   - `laptop_screen`, `laptop_base`를 분리하면 bbox 안정성이 나아질 가능성이 크다.
+3. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
-3. **outlier filter 비교 강화**
+4. **outlier filter 비교 강화**
    - radial percentile 외에 axis quantile, local density, statistical radius 후보를 비교한다.
    - 얇은 물체처럼 실제로 긴 구조를 과하게 자르지 않는 기준을 정한다.
-4. **주의/실패 케이스를 별도 risk set으로 관리**
+5. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
 
