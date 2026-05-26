@@ -16,6 +16,7 @@
 - VGGT 실행 환경 runbook: `docs/runbooks/20260526-vggt-runtime-environments.md`
 - VGGT smoke 실수 기록: `docs/runbooks/20260526-vggt-smoke-troubleshooting.md`
 - 실제 노트북 VGGT MPS smoke 검증: `docs/validation/20260526-real-laptop-vggt-mps-smoke.md`
+- 실제 노트북 SAM2 + VGGT mask smoke 검증: `docs/validation/20260526-real-laptop-sam2-vggt-mask-smoke.md`
 
 ## 현재 상태
 
@@ -36,6 +37,7 @@
 - 기본 테스트는 injected fake runner로 통과하므로, VGGT checkpoint가 없어도 test suite가 깨지지 않는다.
 - 실제 노트북 사진 1장으로 Mac MPS VGGT checkpoint smoke가 `geometry.npz -> prior_from_mask -> Rerun .rrd`까지 성공했다.
 - mask/depth shape mismatch, macOS image permission, Rerun viewer PATH 문제는 코드와 runbook에 반영했다.
+- 같은 노트북 사진에 SAM2 mask를 적용해 manual box보다 effective point count를 26.5% 줄였다.
 
 ## 현재 단계
 
@@ -73,6 +75,7 @@
 - 이슈 #44: VGGT 로컬/학교 GPU 실행 환경별 준비 문서
 - 이슈 #46 / PR #47: VGGT checkpoint smoke wrapper
 - 이슈 #48: VGGT smoke 트러블슈팅 후속 코드/문서 반영
+- T17: 실제 노트북 SAM2 mask + VGGT downstream smoke
 
 계속 제외하는 것:
 
@@ -117,6 +120,11 @@
   - 각 fixture가 `geometry.npz`를 함께 생성
   - `segment_image -> prior_from_mask --geometry-npz` 경로 테스트
   - 결과 이미지: `docs/validation/assets/20260526-representative-fixture-geometry-smoke.jpg`
+- 실제 노트북 SAM2 + VGGT mask smoke
+  - 같은 실제 노트북 사진과 같은 VGGT `geometry.npz` 사용
+  - manual box 대비 SAM2 mask 원본 pixel 26.3% 감소
+  - manual box 대비 VGGT geometry effective point count 26.5% 감소
+  - 결과 이미지: `docs/validation/assets/20260526-real-laptop-sam2-vggt-mask-comparison.jpg`
 
 ## 실패/주의 케이스 개선 메모
 
@@ -142,14 +150,16 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **VGGT smoke 품질 개선**
-   - Mac MPS 단일 이미지 경로는 성공했다.
-   - 다음은 SAM2 mask 또는 Image #1/#3/#4 multi-view smoke로 품질을 올린다.
+1. **point cloud outlier removal**
+   - SAM2 mask로 배경 픽셀은 줄였지만 단일 이미지 depth noise와 outlier가 남아 있다.
+   - 다음 PR에서는 object point cloud에서 극단값을 줄이는 후처리를 추가한다.
+2. **Image #1/#3/#4 multi-view VGGT smoke**
+   - 단일 이미지 depth 한계를 확인했으므로 여러 각도 입력으로 pose/depth 안정성이 나아지는지 본다.
    - 성공하면 PR에는 원본/대용량 산출물 대신 작은 overlay/contact sheet와 summary를 포함한다.
-2. **실측값 기반 evaluation 강화**
+3. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
-3. **주의/실패 케이스를 별도 risk set으로 관리**
+4. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
 

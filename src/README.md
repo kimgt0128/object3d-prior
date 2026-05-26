@@ -18,7 +18,7 @@
 - `object3d.reconstruction`: object point cloud fusion
 - `object3d.priors`: axis-aligned/PCA oriented bbox 기반 object prior fitting
 - `object3d.evaluation`: 실측값 대비 dimension error 계산
-- `object3d.visualization`: point cloud PLY, oriented bbox PLY, scene manifest, optional viewer, mask overlay export
+- `object3d.visualization`: point cloud PLY, oriented bbox PLY, scene manifest, optional viewer, mask overlay/contact sheet export
 - `object3d.pipeline`: mock 기반 end-to-end 실행 흐름
 
 첫 MVP는 실제 SAM/SAM2와 MapAnything/VGGT를 바로 붙이지 않는다.
