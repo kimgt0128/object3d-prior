@@ -13,7 +13,7 @@ from object3d.pipeline.run_prior_from_mask import run_prior_from_mask
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m object3d.pipeline.prior_from_mask",
-        description="Create a mock-depth 3D object prior from a segmentation summary.",
+        description="Create a 3D object prior from a segmentation summary.",
     )
     parser.add_argument(
         "--segmentation-summary",
@@ -33,6 +33,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=2.0,
         help="Temporary constant depth in meters for the mock geometry step.",
     )
+    parser.add_argument(
+        "--geometry-npz",
+        type=Path,
+        default=None,
+        help="Optional .npz file containing depth_m, intrinsics, and camera_to_world.",
+    )
     return parser
 
 
@@ -42,6 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         segmentation_summary_path=args.segmentation_summary,
         output_dir=args.output_dir,
         depth_m=args.depth_m,
+        geometry_npz_path=args.geometry_npz,
     )
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0

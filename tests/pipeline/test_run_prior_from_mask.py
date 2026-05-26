@@ -74,3 +74,37 @@ def test_prior_from_mask_cli_outputs_summary(tmp_path: Path, capsys) -> None:
     assert stdout["depth_m"] == 2.5
     assert stdout["point_count"] == 28
     assert Path(stdout["scene_manifest_json"]).exists()
+
+
+def test_prior_from_mask_cli_accepts_geometry_npz(tmp_path: Path, capsys) -> None:
+    segmentation_summary = _write_segmentation_summary(tmp_path)
+    geometry_npz = tmp_path / "geometry.npz"
+    output_dir = tmp_path / "prior"
+    np.savez(
+        geometry_npz,
+        depth_m=np.full((10, 12), 3.0, dtype=np.float32),
+        intrinsics=np.array(
+            [[120.0, 0.0, 6.0], [0.0, 120.0, 5.0], [0.0, 0.0, 1.0]],
+            dtype=np.float32,
+        ),
+        camera_to_world=np.eye(4, dtype=np.float32),
+    )
+
+    exit_code = main(
+        [
+            "--segmentation-summary",
+            str(segmentation_summary),
+            "--output-dir",
+            str(output_dir),
+            "--geometry-npz",
+            str(geometry_npz),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert stdout["geometry_source"] == "npz"
+    assert stdout["geometry_npz"] == str(geometry_npz)
+    assert stdout["center_xyz"][2] == 3.0
+    assert stdout["point_count"] == 28
+    assert Path(stdout["scene_manifest_json"]).exists()

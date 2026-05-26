@@ -8,8 +8,10 @@ from typing import Any
 
 import numpy as np
 
+from object3d.adapters.geometry.file import load_geometry_npz
 from object3d.adapters.geometry.mock import make_planar_mock_geometry
 from object3d.capture.records import FrameRecord
+from object3d.contracts import GeometryRecord
 from object3d.contracts import MaskRecord
 from object3d.geometry.backprojection import backproject_masked_points
 from object3d.priors.bbox import fit_oriented_bbox
@@ -21,9 +23,10 @@ def run_prior_from_mask(
     segmentation_summary_path: Path,
     output_dir: Path,
     depth_m: float,
+    geometry_npz_path: Path | None = None,
 ) -> dict[str, Any]:
-    """segmentation summary의 mask를 mock depth 기반 3D prior로 변환한다."""
-    if depth_m <= 0:
+    """segmentation summary의 mask를 3D object prior로 변환한다."""
+    if geometry_npz_path is None and depth_m <= 0:
         raise ValueError("depth_m must be positive")
 
     segmentation_summary = _load_json(segmentation_summary_path)
@@ -40,10 +43,11 @@ def run_prior_from_mask(
         image_path=str(segmentation_summary.get("image_path", "")),
         timestamp_s=0.0,
     )
-    geometry = make_planar_mock_geometry(
-        frame,
+    geometry, geometry_summary = _load_geometry(
+        frame=frame,
         image_shape=mask.mask.shape,
         depth_m=depth_m,
+        geometry_npz_path=geometry_npz_path,
     )
     cloud = backproject_masked_points(mask, geometry)
     prior = fit_oriented_bbox(cloud)
@@ -57,7 +61,6 @@ def run_prior_from_mask(
         "backend": segmentation_summary.get("backend"),
         "object_id": prior.object_id,
         "frame_id": mask.frame_id,
-        "depth_m": float(depth_m),
         "mask_npy": str(mask_path),
         "mask_pixels": int(mask.mask.sum()),
         "point_count": int(len(cloud.points_xyz)),
@@ -71,6 +74,7 @@ def run_prior_from_mask(
         "scene_manifest_json": scene["assets"]["scene_manifest_json"],
         "summary_json": str(summary_path),
     }
+    summary.update(geometry_summary)
     summary_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -87,3 +91,28 @@ def _resolve_path(anchor_path: Path, path_text: str) -> Path:
     if path.is_absolute() or path.exists():
         return path
     return anchor_path.parent / path
+
+
+def _load_geometry(
+    *,
+    frame: FrameRecord,
+    image_shape: tuple[int, int],
+    depth_m: float,
+    geometry_npz_path: Path | None,
+) -> tuple[GeometryRecord, dict[str, Any]]:
+    if geometry_npz_path is not None:
+        geometry = load_geometry_npz(geometry_npz_path, frame)
+        return geometry, {
+            "geometry_source": "npz",
+            "geometry_npz": str(geometry_npz_path),
+        }
+
+    geometry = make_planar_mock_geometry(
+        frame,
+        image_shape=image_shape,
+        depth_m=depth_m,
+    )
+    return geometry, {
+        "geometry_source": "mock",
+        "depth_m": float(depth_m),
+    }

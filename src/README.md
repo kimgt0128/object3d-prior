@@ -26,6 +26,10 @@
 SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화하고,
 실제 predictor 생성은 `load_sam_predictor()`의 optional lazy import 경로로 분리한다.
 
+`object3d.adapters.geometry.file`은 실제 depth/pose 모델을 바로 실행하지 않고,
+각 모델이 만든 geometry 산출물을 공통 `.npz` 파일로 받은 뒤 `GeometryRecord`로
+정규화한다.
+
 ## Mock MVP 실행
 
 아직 패키지 설치 설정을 두지 않았으므로 로컬 실행은 `PYTHONPATH=src`를 붙인다.
@@ -126,6 +130,29 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
 - `outputs/prior-from-mask/object_001_cloud.ply`
 - `outputs/prior-from-mask/object_001_bbox.ply`
 - `outputs/prior-from-mask/scene_manifest.json`
+
+실제 depth/pose 모델을 붙이기 전에는 공통 `.npz` 파일을 만들어 같은 CLI에
+넘길 수 있다.
+
+필수 key:
+
+- `depth_m`: meter 단위 `(H, W)` depth map
+- `intrinsics`: `(3, 3)` pinhole camera matrix
+- `camera_to_world`: camera 좌표계를 world 좌표계로 보내는 `(4, 4)` transform
+
+`world_to_camera`는 내부 계약에서 받지 않는다. 필요한 경우 외부 모델 산출물을
+`camera_to_world`로 변환한 뒤 저장한다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
+  --segmentation-summary outputs/manual-segmentation/summary.json \
+  --output-dir outputs/prior-from-mask-file-geometry \
+  --geometry-npz outputs/geometry/frame_000000.npz
+```
+
+이 경로는 아직 MapAnything/VGGT/COLMAP inference를 실행하지 않는다. 목적은
+모델별 adapter가 만든 depth/pose 파일이 downstream 3D prior 파이프라인에
+같은 계약으로 들어갈 수 있는지 확인하는 것이다.
 
 ## 대표 Smoke Fixture 생성
 
