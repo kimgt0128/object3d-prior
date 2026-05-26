@@ -124,7 +124,7 @@ COLMAP은 feature extraction, matching, mapper, image undistorter, patch match s
 
 ## 다음 PR 제안
 
-**T14: VGGT adapter skeleton**
+**T14: VGGT adapter skeleton** — 구현됨
 
 목표:
 
@@ -138,6 +138,12 @@ COLMAP은 feature extraction, matching, mapper, image undistorter, patch match s
 - `save_vggt_geometry_npz(...)` 또는 그에 준하는 변환 함수 추가
 - VGGT raw camera/depth output -> `.npz` 저장 테스트 추가
 - README/PLAN에 실제 checkpoint smoke는 다음 T로 분리한다고 명시
+
+좌표계 주의:
+
+- VGGT 공식 README는 extrinsic을 OpenCV convention의 camera-from-world로 설명한다.
+- 내부 `GeometryRecord` 계약은 `camera_to_world`만 받는다.
+- 따라서 VGGT adapter는 extrinsic을 역행렬로 변환해 `camera_to_world`에 저장한다.
 
 아직 하지 않는 것:
 

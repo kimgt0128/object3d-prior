@@ -27,6 +27,7 @@
 - 노트북, 영수증, 태블릿+키보드는 원본 개인 사진 없이 재현 가능한 synthetic smoke fixture로 고정했다.
 - 대표 synthetic smoke fixture는 각 case별 `geometry.npz`도 함께 생성해 file geometry 경로까지 회귀 테스트할 수 있다.
 - VGGT, MapAnything, COLMAP을 비교했고 다음 실제 geometry adapter 1순위는 VGGT로 정했다.
+- VGGT prediction을 표준 `.npz` geometry contract로 저장하는 adapter skeleton이 있다.
 
 ## 현재 단계
 
@@ -60,6 +61,7 @@
 - PR #37 / #36: 실제 depth/pose 입력 전 `.npz` file geometry adapter 준비
 - 이슈 #38: 대표 smoke fixture와 file geometry 결합 smoke
 - 이슈 #40: geometry backend 후보 조사와 VGGT 1순위 결정
+- 진행 중 #42: VGGT geometry adapter skeleton
 
 계속 제외하는 것:
 
@@ -75,7 +77,7 @@
 |---|---:|---|
 | T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있다. |
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
-| T3 Geometry adapter | 일부 구현 | mock geometry와 `.npz` file geometry loader가 있다. 대표 fixture용 synthetic file geometry smoke도 있다. VGGT를 다음 실제 adapter 1순위로 정했다. 실제 VGGT/MapAnything/COLMAP adapter는 아직 없다. |
+| T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton이 있다. 실제 VGGT checkpoint smoke와 MapAnything/COLMAP adapter는 아직 없다. |
 | T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반으로 검증한다. |
 | T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직은 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
@@ -129,10 +131,10 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **VGGT adapter skeleton 구현**
-   - VGGT output을 `depth_m`, `intrinsics`, `camera_to_world` key를 가진 `.npz`로 정규화하는 변환 함수를 만든다.
-   - 실제 checkpoint 다운로드와 GPU inference는 다음 T로 분리한다.
-   - fake VGGT prediction으로 adapter 변환 테스트를 먼저 고정한다.
+1. **실제 VGGT checkpoint smoke**
+   - 로컬 환경에 VGGT dependency와 checkpoint를 준비한다.
+   - 대표 사진 1장 또는 대표 fixture 이미지로 VGGT inference를 실행한다.
+   - VGGT prediction을 `geometry.npz`로 저장하고 `prior_from_mask --geometry-npz`까지 연결한다.
 2. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
