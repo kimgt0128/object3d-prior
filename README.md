@@ -87,12 +87,93 @@ docs/
 
 수업 자료, 개인 계획 문서, 참고 논문 원본, 실험용 원본 데이터는 git에 포함하지 않습니다. 이 레포지토리는 공개 가능한 구현 코드, 설정, 테스트, 문서 중심으로 관리합니다.
 
+## VGGT 실행 환경별 명령
+
+실제 VGGT checkpoint smoke는 아직 다음 T로 분리되어 있습니다. 현재 repo에는 VGGT prediction을 `geometry.npz`로 저장하는 adapter skeleton이 있고, 실행 환경 준비 절차는 아래처럼 나눕니다.
+
+자세한 기준은 [VGGT runtime environment runbook](docs/runbooks/20260526-vggt-runtime-environments.md)에 정리했습니다.
+
+### 로컬 MacBook Pro M5 / Apple Silicon MPS
+
+로컬 Mac은 CUDA가 아니라 PyTorch MPS backend를 사용합니다. VGGT 공식 quick start는 CUDA/CPU 중심이라, 로컬에서는 MPS 가능 여부 확인과 대표 fixture 1장 smoke를 첫 목표로 둡니다.
+
+```bash
+python3 -m venv .venv-vggt-mps
+source .venv-vggt-mps/bin/activate
+python -m pip install -U pip
+python -m pip install torch torchvision torchaudio
+python -m pip install numpy Pillow opencv-python scipy huggingface_hub
+
+mkdir -p reference
+git clone https://github.com/facebookresearch/vggt.git reference/vggt
+python -m pip install -r reference/vggt/requirements.txt
+python -m pip install -e reference/vggt
+
+python - <<'PY'
+import torch
+print("mps available:", torch.backends.mps.is_available())
+PY
+```
+
+### 학교 NVIDIA RTX 30/40 Series / CUDA
+
+학교 GPU는 실제 VGGT inference의 기본 실행 환경입니다. RTX 4070 12GB급이면 1장으로 시작하고, 성공 뒤 2-4장까지 늘리는 흐름을 기본으로 둡니다.
+
+```bash
+nvidia-smi
+
+python3 -m venv .venv-vggt-cuda
+source .venv-vggt-cuda/bin/activate
+python -m pip install -U pip
+python -m pip install torch torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/cu128
+python -m pip install numpy Pillow opencv-python scipy huggingface_hub
+
+mkdir -p reference
+git clone https://github.com/facebookresearch/vggt.git reference/vggt
+python -m pip install -r reference/vggt/requirements.txt
+python -m pip install -e reference/vggt
+
+python - <<'PY'
+import torch
+print("cuda available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("device:", torch.cuda.get_device_name(0))
+PY
+```
+
+### 공통 downstream 확인
+
+VGGT가 만든 `geometry.npz`가 있으면 기존 3D prior 단계는 그대로 이어집니다.
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.generate_smoke_fixtures \
+  --output-dir outputs/representative-smoke-fixtures
+
+PYTHONPATH=src python -m object3d.pipeline.segment_image \
+  --backend manual \
+  --image-path outputs/representative-smoke-fixtures/laptop/image.png \
+  --prompt-json outputs/representative-smoke-fixtures/laptop/prompt.json \
+  --output-dir outputs/vggt-smoke/laptop/segmentation \
+  --object-id laptop_001
+
+PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
+  --segmentation-summary outputs/vggt-smoke/laptop/segmentation/summary.json \
+  --output-dir outputs/vggt-smoke/laptop/prior \
+  --geometry-npz outputs/vggt-smoke/laptop/geometry.npz
+```
+
 ## 현재 상태
 
-초기 설계 및 구현 준비 단계입니다. 우선순위는 다음과 같습니다.
+현재는 no-training MVP의 end-to-end skeleton이 연결된 상태입니다.
 
-1. 단일 객체 촬영 프로토콜 정의
-2. SAM 계열 segmentation/tracking adapter 구성
-3. depth/pose adapter 구성
-4. masked point cloud 생성
-5. object prior fitting과 측정 평가
+구현된 흐름:
+
+1. 이미지/영상 입력과 frame manifest
+2. manual 또는 SAM2 segmentation
+3. mock depth 또는 `.npz` file geometry 입력
+4. masked back-projection
+5. object point cloud와 oriented bbox
+6. scene manifest와 Rerun recording 저장
+
+다음 큰 작업은 실제 VGGT checkpoint smoke입니다. 먼저 1장 입력으로 depth/pose를 추정해 `geometry.npz`를 만들고, 기존 `prior_from_mask --geometry-npz` 경로에 연결합니다.

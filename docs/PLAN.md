@@ -13,6 +13,7 @@
 - PR에서 바로 볼 검증 이미지: `docs/validation/assets/20260524-real-photo-sam2-overlay-contact-sheet.jpg`
 - 대표 fixture file geometry smoke 이미지: `docs/validation/assets/20260526-representative-fixture-geometry-smoke.jpg`
 - geometry backend 후보 조사: `docs/research/20260526-geometry-backend-candidates.md`
+- VGGT 실행 환경 runbook: `docs/runbooks/20260526-vggt-runtime-environments.md`
 
 ## 현재 상태
 
@@ -28,6 +29,7 @@
 - 대표 synthetic smoke fixture는 각 case별 `geometry.npz`도 함께 생성해 file geometry 경로까지 회귀 테스트할 수 있다.
 - VGGT, MapAnything, COLMAP을 비교했고 다음 실제 geometry adapter 1순위는 VGGT로 정했다.
 - VGGT prediction을 표준 `.npz` geometry contract로 저장하는 adapter skeleton이 있다.
+- 로컬 MacBook Pro M5/MPS와 학교 NVIDIA RTX 30/40 series CUDA 환경을 나눠 실제 VGGT smoke 준비 절차를 문서화했다.
 
 ## 현재 단계
 
@@ -61,13 +63,15 @@
 - PR #37 / #36: 실제 depth/pose 입력 전 `.npz` file geometry adapter 준비
 - 이슈 #38: 대표 smoke fixture와 file geometry 결합 smoke
 - 이슈 #40: geometry backend 후보 조사와 VGGT 1순위 결정
-- 진행 중 #42: VGGT geometry adapter skeleton
+- 이슈 #42: VGGT geometry adapter skeleton
+- 이슈 #44: VGGT 로컬/학교 GPU 실행 환경별 준비 문서
 
 계속 제외하는 것:
 
 - SAM2 checkpoint/config 파일 커밋
 - 실제 depth 모델 연결
-- MapAnything/VGGT adapter 구현
+- VGGT 실제 checkpoint inference 자동화
+- MapAnything adapter 구현
 - output 산출물 커밋
 - `project/`, `cv_tutorial/`, `reference/`
 
@@ -132,9 +136,10 @@
 우선순위는 다음 순서가 좋다.
 
 1. **실제 VGGT checkpoint smoke**
-   - 로컬 환경에 VGGT dependency와 checkpoint를 준비한다.
-   - 대표 사진 1장 또는 대표 fixture 이미지로 VGGT inference를 실행한다.
+   - `docs/runbooks/20260526-vggt-runtime-environments.md` 기준으로 로컬 MPS 또는 학교 CUDA 환경을 준비한다.
+   - 대표 fixture 1장으로 VGGT inference를 실행한다.
    - VGGT prediction을 `geometry.npz`로 저장하고 `prior_from_mask --geometry-npz`까지 연결한다.
+   - 성공하면 PR에는 원본/대용량 산출물 대신 작은 overlay/contact sheet와 summary를 포함한다.
 2. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
