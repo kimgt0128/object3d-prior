@@ -110,6 +110,34 @@ def test_prior_from_mask_cli_accepts_geometry_npz(tmp_path: Path, capsys) -> Non
     assert Path(stdout["scene_manifest_json"]).exists()
 
 
+def test_prior_from_mask_cli_accepts_outlier_filter_args(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    segmentation_summary = _write_segmentation_summary(tmp_path)
+    output_dir = tmp_path / "prior"
+
+    exit_code = main(
+        [
+            "--segmentation-summary",
+            str(segmentation_summary),
+            "--output-dir",
+            str(output_dir),
+            "--depth-m",
+            "2.5",
+            "--outlier-filter",
+            "radial_percentile",
+            "--outlier-keep-ratio",
+            "0.95",
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert stdout["outlier_filter"] == "radial_percentile"
+    assert stdout["outlier_keep_ratio"] == 0.95
+
+
 def test_run_prior_from_mask_resizes_mask_to_geometry_shape_for_vggt_depth(
     tmp_path: Path,
 ) -> None:
@@ -140,3 +168,55 @@ def test_run_prior_from_mask_resizes_mask_to_geometry_shape_for_vggt_depth(
     assert summary["point_count"] == summary["mask_pixels"]
     assert Path(summary["mask_npy"]).exists()
     assert Path(summary["resized_mask_npy"]).exists()
+
+
+def test_run_prior_from_mask_can_filter_outlier_points(tmp_path: Path) -> None:
+    mask = np.ones((4, 4), dtype=bool)
+    mask_path = tmp_path / "mask.npy"
+    segmentation_summary = tmp_path / "summary.json"
+    np.save(mask_path, mask)
+    segmentation_summary.write_text(
+        json.dumps(
+            {
+                "backend": "manual",
+                "object_id": "object_001",
+                "frame_id": 0,
+                "image_path": str(tmp_path / "frame.png"),
+                "confidence": 0.8,
+                "mask_shape": [4, 4],
+                "mask_pixels": int(mask.sum()),
+                "mask_npy": str(mask_path),
+                "summary_json": str(segmentation_summary),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    geometry_npz = tmp_path / "geometry.npz"
+    depth = np.full((4, 4), 2.0, dtype=np.float32)
+    depth[3, 3] = 20.0
+    np.savez(
+        geometry_npz,
+        depth_m=depth,
+        intrinsics=np.array(
+            [[80.0, 0.0, 2.0], [0.0, 80.0, 2.0], [0.0, 0.0, 1.0]],
+            dtype=np.float32,
+        ),
+        camera_to_world=np.eye(4, dtype=np.float32),
+    )
+
+    summary = run_prior_from_mask(
+        segmentation_summary_path=segmentation_summary,
+        output_dir=tmp_path / "prior",
+        depth_m=2.0,
+        geometry_npz_path=geometry_npz,
+        outlier_filter="radial_percentile",
+        outlier_keep_ratio=0.95,
+    )
+
+    assert summary["outlier_filter"] == "radial_percentile"
+    assert summary["outlier_keep_ratio"] == 0.95
+    assert summary["input_point_count"] == 16
+    assert summary["point_count"] == 15
+    assert summary["filtered_point_count"] == 15
+    assert summary["removed_point_count"] == 1

@@ -134,6 +134,18 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
 현재 `--depth-m`은 실제 depth 모델이 붙기 전 임시 깊이 값이다.
 그래도 mask, back-projection, bbox, scene artifact 흐름을 한 번에 검증할 수 있다.
 
+실제 depth/pose 결과에서 일부 3D 점이 bbox를 크게 끌고 가면, bbox fitting 전에
+간단한 radial percentile filter를 켤 수 있다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
+  --segmentation-summary outputs/sam2-segmentation/summary.json \
+  --output-dir outputs/prior-filtered \
+  --geometry-npz outputs/vggt-smoke/geometry.npz \
+  --outlier-filter radial_percentile \
+  --outlier-keep-ratio 0.95
+```
+
 산출물:
 
 - `outputs/prior-from-mask/summary.json`

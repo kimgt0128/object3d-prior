@@ -15,6 +15,9 @@ from object3d.contracts import GeometryRecord
 from object3d.contracts import MaskRecord
 from object3d.geometry.backprojection import backproject_masked_points
 from object3d.priors.bbox import fit_oriented_bbox
+from object3d.reconstruction.outlier_filter import (
+    filter_point_cloud_radial_percentile,
+)
 from object3d.visualization.export import export_scene_artifacts
 
 
@@ -24,6 +27,8 @@ def run_prior_from_mask(
     output_dir: Path,
     depth_m: float,
     geometry_npz_path: Path | None = None,
+    outlier_filter: str = "none",
+    outlier_keep_ratio: float = 0.95,
 ) -> dict[str, Any]:
     """segmentation summary의 mask를 3D object prior로 변환한다."""
     if geometry_npz_path is None and depth_m <= 0:
@@ -57,6 +62,11 @@ def run_prior_from_mask(
         output_dir=output_dir,
     )
     cloud = backproject_masked_points(mask, geometry)
+    cloud, outlier_summary = _filter_cloud(
+        cloud=cloud,
+        outlier_filter=outlier_filter,
+        outlier_keep_ratio=outlier_keep_ratio,
+    )
     prior = fit_oriented_bbox(cloud)
 
     scene = export_scene_artifacts(cloud, prior, output_dir)
@@ -82,6 +92,7 @@ def run_prior_from_mask(
     }
     summary.update(mask_summary)
     summary.update(geometry_summary)
+    summary.update(outlier_summary)
     summary_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -123,6 +134,28 @@ def _load_geometry(
         "geometry_source": "mock",
         "depth_m": float(depth_m),
     }
+
+
+def _filter_cloud(
+    *,
+    cloud,
+    outlier_filter: str,
+    outlier_keep_ratio: float,
+):
+    if outlier_filter == "none":
+        point_count = int(len(cloud.points_xyz))
+        return cloud, {
+            "outlier_filter": "none",
+            "input_point_count": point_count,
+            "filtered_point_count": point_count,
+            "removed_point_count": 0,
+        }
+    if outlier_filter == "radial_percentile":
+        return filter_point_cloud_radial_percentile(
+            cloud,
+            keep_ratio=outlier_keep_ratio,
+        )
+    raise ValueError("outlier_filter must be 'none' or 'radial_percentile'")
 
 
 def _align_mask_to_geometry(
