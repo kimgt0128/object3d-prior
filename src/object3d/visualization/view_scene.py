@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Sequence
@@ -168,7 +170,19 @@ def _log_rerun_scene(
         for start, end in bbox.edges
     ]
 
-    rr.init(app_id, spawn=spawn)
+    _prepend_python_bin_for_rerun_viewer(spawn=spawn)
+    try:
+        rr.init(app_id, spawn=spawn)
+    except RuntimeError as error:
+        if spawn and "Rerun Viewer executable" in str(error):
+            raise OptionalViewerDependencyError(
+                "Rerun Viewer executable was not found in PATH. "
+                "Run with the Rerun environment, for example "
+                "`PATH=\"$PWD/.venv-rerun/bin:$PATH\" PYTHONPATH=src "
+                ".venv-rerun/bin/python -m object3d.visualization.view_scene ... --spawn`, "
+                "or open the recording directly with `.venv-rerun/bin/rerun scene.rrd`."
+            ) from error
+        raise
     if save_rrd is not None:
         save_rrd.parent.mkdir(parents=True, exist_ok=True)
         rr.save(str(save_rrd))
@@ -185,6 +199,20 @@ def _resolve_asset_path(manifest_path: Path, asset_path: str) -> Path:
     if path.is_absolute() or path.exists():
         return path
     return manifest_path.parent / path
+
+
+def _prepend_python_bin_for_rerun_viewer(*, spawn: bool) -> None:
+    if not spawn:
+        return
+    python_bin = Path(sys.executable).resolve().parent
+    rerun_bin = python_bin / "rerun"
+    if not rerun_bin.exists():
+        return
+    current_path = os.environ.get("PATH", "")
+    path_parts = current_path.split(os.pathsep) if current_path else []
+    python_bin_text = str(python_bin)
+    if python_bin_text not in path_parts:
+        os.environ["PATH"] = os.pathsep.join([python_bin_text, *path_parts])
 
 
 if __name__ == "__main__":

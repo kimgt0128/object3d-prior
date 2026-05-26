@@ -54,6 +54,7 @@ def test_run_vggt_geometry_writes_contract_with_injected_runner(tmp_path: Path) 
     assert summary["image_count"] == 1
     assert summary["device"] == "cuda"
     assert summary["model_id"] == "fake/vggt"
+    assert summary["geometry_depth_shape"] == [3, 4]
     assert summary["geometry_source"] == "vggt"
     assert summary["geometry_npz"] == str(output_path)
     assert Path(summary["summary_json"]).exists()
@@ -67,6 +68,42 @@ def test_run_vggt_geometry_rejects_empty_image_list(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="at least one"):
         run_vggt_geometry(
             image_paths=[],
+            output_path=tmp_path / "geometry.npz",
+            runner=lambda **_: {},
+        )
+
+
+def test_run_vggt_geometry_reports_missing_image_with_actionable_message(
+    tmp_path: Path,
+) -> None:
+    missing_path = tmp_path / "missing.jpg"
+
+    with pytest.raises(FileNotFoundError, match="input image not found"):
+        run_vggt_geometry(
+            image_paths=[missing_path],
+            output_path=tmp_path / "geometry.npz",
+            runner=lambda **_: {},
+        )
+
+
+def test_run_vggt_geometry_reports_unreadable_image_with_workspace_hint(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    image_path = tmp_path / "frame.png"
+    image_path.write_bytes(b"fake image bytes")
+    real_open = Path.open
+
+    def fake_open(self, *args, **kwargs):
+        if self == image_path:
+            raise PermissionError("blocked by macOS privacy")
+        return real_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", fake_open)
+
+    with pytest.raises(PermissionError, match="copy it under this workspace"):
+        run_vggt_geometry(
+            image_paths=[image_path],
             output_path=tmp_path / "geometry.npz",
             runner=lambda **_: {},
         )

@@ -42,9 +42,7 @@ def run_vggt_geometry(
     normalized_image_paths = tuple(Path(path) for path in image_paths)
     if not normalized_image_paths:
         raise ValueError("run_vggt_geometry requires at least one image path")
-    for image_path in normalized_image_paths:
-        if not image_path.exists():
-            raise FileNotFoundError(image_path)
+    _validate_image_paths_are_readable(normalized_image_paths)
 
     prediction_runner = runner or _run_vggt_prediction
     prediction = prediction_runner(
@@ -57,6 +55,8 @@ def run_vggt_geometry(
         output_path=output_path,
         frame_index=frame_index,
     )
+    with np.load(output_path) as geometry_payload:
+        geometry_depth_shape = list(geometry_payload["depth_m"].shape)
     summary_path = output_path.with_suffix(".summary.json")
     summary = {
         "source": "vggt_geometry",
@@ -64,6 +64,7 @@ def run_vggt_geometry(
         "image_count": len(normalized_image_paths),
         "device": device,
         "model_id": model_id,
+        "geometry_depth_shape": geometry_depth_shape,
         "summary_json": str(summary_path),
     }
     summary.update(geometry_summary)
@@ -115,6 +116,25 @@ def _run_vggt_prediction(
         "intrinsic": _to_numpy_without_batch(intrinsic),
         "extrinsic": _to_numpy_without_batch(extrinsic),
     }
+
+
+def _validate_image_paths_are_readable(image_paths: tuple[Path, ...]) -> None:
+    for image_path in image_paths:
+        if not image_path.exists():
+            raise FileNotFoundError(
+                f"input image not found: {image_path}. "
+                "Run `ls` on the parent directory and make sure the variable points "
+                "to the copied workspace file, not an old Downloads path."
+            )
+        try:
+            with image_path.open("rb") as handle:
+                handle.read(1)
+        except PermissionError as error:
+            raise PermissionError(
+                f"cannot read input image: {image_path}. "
+                "On macOS, copy it under this workspace, for example under "
+                "`outputs/.../input/`, or grant Full Disk Access to the terminal app."
+            ) from error
 
 
 def _autocast_context(torch: Any, device: str) -> Any:
