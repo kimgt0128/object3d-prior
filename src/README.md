@@ -142,9 +142,17 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
   --segmentation-summary outputs/sam2-segmentation/summary.json \
   --output-dir outputs/prior-filtered \
   --geometry-npz outputs/vggt-smoke/geometry.npz \
+  --mask-cleanup largest_component \
+  --mask-erode-pixels 1 \
   --outlier-filter radial_percentile \
   --outlier-keep-ratio 0.95
 ```
+
+`--mask-cleanup largest_component`는 SAM2 mask 안에서 가장 큰 연결 덩어리만
+남긴다. `--mask-erode-pixels 1`은 경계를 한 픽셀 안쪽으로 깎아 테이블이나
+배경이 얇게 붙은 경우를 줄인다. 쉽게 말하면, 3D로 올리기 전에 2D mask를
+한 번 청소하는 옵션이다. 얇은 물체는 erosion으로 사라질 수 있으므로
+`--mask-erode-pixels 0`으로 둔다.
 
 산출물:
 

@@ -170,8 +170,18 @@ PYTHONPATH=src python -m object3d.pipeline.segment_image \
 PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
   --segmentation-summary outputs/vggt-smoke/laptop/segmentation/summary.json \
   --output-dir outputs/vggt-smoke/laptop/prior \
-  --geometry-npz outputs/vggt-smoke/laptop/geometry.npz
+  --geometry-npz outputs/vggt-smoke/laptop/geometry.npz \
+  --mask-cleanup largest_component \
+  --mask-erode-pixels 1 \
+  --outlier-filter radial_percentile \
+  --outlier-keep-ratio 0.95
 ```
+
+`--mask-cleanup largest_component`는 SAM2 mask에서 가장 큰 객체 덩어리만
+남기고, `--mask-erode-pixels 1`은 경계를 살짝 안쪽으로 깎습니다. 즉,
+노트북뿐 아니라 책상, 컵, 가구처럼 일반 물체를 3D로 올리기 전에 2D mask를
+먼저 청소하는 단계입니다. 얇은 물체는 erosion으로 사라질 수 있으므로
+`--mask-erode-pixels 0`으로 시작합니다.
 
 ## 현재 상태
 
@@ -182,8 +192,8 @@ PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
 1. 이미지/영상 입력과 frame manifest
 2. manual 또는 SAM2 segmentation
 3. mock depth 또는 `.npz` file geometry 입력
-4. masked back-projection
-5. object point cloud와 oriented bbox
+4. mask cleanup과 masked back-projection
+5. object point cloud outlier filtering과 oriented bbox
 6. scene manifest와 Rerun recording 저장
 
-다음 큰 작업은 VGGT 결과 품질 개선입니다. 단일 이미지 manual box smoke는 통과했으므로, 다음은 SAM2 mask 적용, point cloud outlier removal, Image #1/#3/#4 multi-view smoke 순서로 품질을 올립니다.
+다음 큰 작업은 object-aware multi-view fusion과 subpart segmentation입니다. 현재는 view별 3D prior를 만들 수 있지만, 일반 물체를 항상 깔끔한 하나의 3D 객체로 복원하려면 여러 view의 point cloud를 안정적으로 합치고, 열린 노트북처럼 꺾인 물체를 부분 객체로 나누는 단계가 필요합니다.
