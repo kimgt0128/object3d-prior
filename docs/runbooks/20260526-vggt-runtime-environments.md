@@ -143,13 +143,16 @@ PY
 
 ## 우리 파이프라인과 연결하는 흐름
 
-현재 repo에는 VGGT raw prediction을 `geometry.npz`로 저장하는 adapter skeleton이 있다. 아직 "이미지를 넣으면 VGGT를 실행해서 바로 `.npz`를 만드는 CLI"는 없다. 다음 T에서 이 실행 wrapper를 추가한다.
-
-그 전까지는 대표 fixture와 downstream 명령으로 연결 지점을 확인한다.
+현재 repo에는 VGGT raw prediction을 `geometry.npz`로 저장하는 adapter와 `vggt_geometry` CLI skeleton이 있다. 기본 test suite는 fake runner로 검증하므로 VGGT dependency가 없어도 통과한다. 실제 smoke는 VGGT가 설치된 로컬 MPS 또는 학교 CUDA 환경에서 아래 명령으로 시도한다.
 
 ```bash
 PYTHONPATH=src python -m object3d.pipeline.generate_smoke_fixtures \
   --output-dir outputs/representative-smoke-fixtures
+
+PYTHONPATH=src python -m object3d.pipeline.vggt_geometry \
+  --image-path outputs/representative-smoke-fixtures/laptop/image.png \
+  --output-path outputs/vggt-smoke/laptop/geometry.npz \
+  --device cuda
 ```
 
 실제 VGGT smoke가 `outputs/vggt-smoke/laptop/geometry.npz`를 만들면, 기존 downstream은 그대로 이어진다.
@@ -168,11 +171,11 @@ PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
   --geometry-npz outputs/vggt-smoke/laptop/geometry.npz
 ```
 
-## 다음 T에서 구현할 것
+## 다음 T에서 확인할 것
 
-- VGGT dependency가 있는 환경에서 실제 model load와 inference를 호출하는 얇은 실행 wrapper
-- 입력 이미지 1장을 VGGT prediction으로 바꾸고 `save_vggt_geometry_npz(...)`에 연결
-- 로컬 MPS와 CUDA 장비를 모두 지원하되, default smoke는 1장
+- VGGT dependency가 있는 환경에서 `vggt_geometry` CLI가 실제 checkpoint를 내려받고 inference를 완료하는지 확인
+- 입력 이미지 1장을 VGGT prediction으로 바꾸고 `save_vggt_geometry_npz(...)`에 연결되는지 확인
+- 로컬 MPS와 CUDA 장비를 모두 지원하되, default smoke는 1장으로 유지
 - 성공 시 PR에는 `geometry.npz` 자체가 아니라 overlay/contact sheet 같은 작은 검증 이미지와 요약만 포함
 
 ## 참고 공식 문서
