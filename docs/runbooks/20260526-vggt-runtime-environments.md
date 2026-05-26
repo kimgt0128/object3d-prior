@@ -157,6 +157,8 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry \
 
 실제 VGGT smoke가 `outputs/vggt-smoke/laptop/geometry.npz`를 만들면, 기존 downstream은 그대로 이어진다.
 
+VGGT가 내부에서 이미지를 resize/crop할 수 있으므로, segmentation mask와 depth map의 해상도가 다를 수 있다. `prior_from_mask`는 이 경우 mask를 geometry depth shape에 맞춰 nearest-neighbor로 자동 resize하고, summary에 `mask_alignment`, `input_mask_shape`, `geometry_depth_shape`, `effective_mask_shape`를 기록한다.
+
 ```bash
 PYTHONPATH=src python -m object3d.pipeline.segment_image \
   --backend manual \
@@ -177,6 +179,31 @@ PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
 - 입력 이미지 1장을 VGGT prediction으로 바꾸고 `save_vggt_geometry_npz(...)`에 연결되는지 확인
 - 로컬 MPS와 CUDA 장비를 모두 지원하되, default smoke는 1장으로 유지
 - 성공 시 PR에는 `geometry.npz` 자체가 아니라 overlay/contact sheet 같은 작은 검증 이미지와 요약만 포함
+
+## Rerun 환경 분리
+
+최신 `rerun-sdk`는 `numpy>=2`를 요구하고, 현재 VGGT package는 `numpy<2`를 요구한다. 따라서 같은 venv에 섞지 않는다.
+
+```bash
+/opt/homebrew/bin/python3.11 -m venv .venv-rerun
+.venv-rerun/bin/python -m pip install -U pip
+.venv-rerun/bin/python -m pip install rerun-sdk numpy
+```
+
+보기:
+
+```bash
+.venv-rerun/bin/rerun outputs/.../scene.rrd
+```
+
+또는 spawn:
+
+```bash
+PATH="$PWD/.venv-rerun/bin:$PATH" PYTHONPATH=src .venv-rerun/bin/python -m object3d.visualization.view_scene \
+  --manifest outputs/.../scene_manifest.json \
+  --backend rerun \
+  --spawn
+```
 
 ## 참고 공식 문서
 

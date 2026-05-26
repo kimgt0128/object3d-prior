@@ -69,22 +69,24 @@ PYTHONPATH=src python3 -m object3d.visualization.view_scene \
 
 Rerun을 설치한 환경에서는 같은 manifest를 Rerun viewer backend로 보낼 수 있다.
 Rerun은 선택 dependency이며 기본 테스트/실행에는 필요하지 않다.
+VGGT venv와 최신 Rerun venv는 `numpy` 요구 버전이 다르므로 실제 smoke에서는
+`.venv-rerun` 같은 별도 환경을 권장한다.
 
 ```bash
-uv pip install --python .venv/bin/python rerun-sdk
-PYTHONPATH=src python3 -m object3d.visualization.view_scene \
-  --manifest outputs/mock-mvp/scene_manifest.json \
-  --backend rerun \
-  --spawn
-```
-
-GUI를 바로 띄우지 않고 재현 가능한 recording 파일로 저장할 수도 있다.
-
-```bash
-PYTHONPATH=src .venv/bin/python -m object3d.visualization.view_scene \
+PYTHONPATH=src .venv-rerun/bin/python -m object3d.visualization.view_scene \
   --manifest outputs/mock-mvp/scene_manifest.json \
   --backend rerun \
   --save-rrd outputs/mock-mvp/object3d-prior.rrd
+```
+
+viewer를 바로 띄울 때는 Rerun executable이 PATH에 있어야 한다.
+
+```bash
+PATH="$PWD/.venv-rerun/bin:$PATH" \
+PYTHONPATH=src .venv-rerun/bin/python -m object3d.visualization.view_scene \
+  --manifest outputs/mock-mvp/scene_manifest.json \
+  --backend rerun \
+  --spawn
 ```
 
 ## 수동 Prompt Segmentation 실행

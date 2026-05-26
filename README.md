@@ -157,6 +157,7 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry \
 ```
 
 `geometry.npz`가 있으면 기존 3D prior 단계는 그대로 이어집니다.
+VGGT depth 해상도와 segmentation mask 해상도가 다르면 `prior_from_mask`가 mask를 geometry 해상도에 맞춰 자동 조정하고 summary에 기록합니다.
 
 ```bash
 PYTHONPATH=src python -m object3d.pipeline.segment_image \
