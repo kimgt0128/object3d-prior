@@ -2,6 +2,8 @@
 project/
 reference/
 cv_tutorial/
+.wiki/
+.serena/
 
 # macOS / 편집기 임시 파일
 .DS_Store

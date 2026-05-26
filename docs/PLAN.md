@@ -17,10 +17,12 @@
 - capture, segmentation adapter, mock geometry, masked back-projection, point cloud fusion, PCA oriented bbox, evaluation이 연결되어 있다.
 - `segment_image` CLI는 `manual`과 `sam2` backend를 선택할 수 있다.
 - `prior_from_mask` CLI는 segmentation 결과를 3D point cloud, bbox, scene manifest로 바꿀 수 있다.
+- `prior_from_mask` CLI는 고정 mock depth뿐 아니라 `.npz` file geometry 입력도 받을 수 있다.
 - scene manifest는 summary backend와 Rerun lazy backend로 열 수 있다.
 - Rerun backend는 `.rrd` recording 파일로 3D 장면을 저장할 수 있다.
 - 실제 SAM2 checkpoint를 사용해 synthetic image와 실제 사용자 사진 모두에서 smoke 검증을 수행했다.
 - 실제 사진 3장, 물체 후보 9개를 대상으로 성공/주의/실패 케이스를 분리해 기록했다.
+- 노트북, 영수증, 태블릿+키보드는 원본 개인 사진 없이 재현 가능한 synthetic smoke fixture로 고정했다.
 
 ## 현재 단계
 
@@ -33,7 +35,7 @@
   -> frame 또는 image 단위 입력 준비
   -> SAM2/manual segmentation
   -> mask.npy / overlay.png / summary.json
-  -> mock depth 기반 masked back-projection
+  -> mock depth 또는 file geometry 기반 masked back-projection
   -> object point cloud
   -> oriented bbox
   -> scene manifest
@@ -42,7 +44,7 @@
 
 다만 아직 **실제 3D 정확도 검증 단계는 아니다.**
 
-현재 `prior_from_mask`는 실제 depth 모델이 아니라 `--depth-m 2.0` 같은 고정 mock depth를 사용한다. 따라서 지금 만들어지는 3D bbox 크기 값은 실제 물체 치수가 아니라, **SAM2 mask가 3D prior 파이프라인까지 연결되는지 보는 구조 검증 값**이다.
+현재 `prior_from_mask`는 기본값으로 `--depth-m 2.0` 같은 고정 mock depth를 사용한다. 필요하면 `--geometry-npz`로 외부 depth/pose 산출물을 넣을 수 있지만, 아직 MapAnything/VGGT/COLMAP inference 자체를 실행하는 단계는 아니다. 따라서 지금 만들어지는 3D bbox 크기 값은 실제 물체 치수가 아니라, **SAM2 mask와 geometry 입력이 3D prior 파이프라인까지 연결되는지 보는 구조 검증 값**이다.
 
 ## 작업 범위
 
@@ -50,6 +52,8 @@
 
 - PR #31: synthetic image 기반 SAM2 -> 3D prior -> Rerun recording 검증
 - PR #32: 실제 사용자 사진 3장/9개 물체 후보 기반 SAM2 -> 3D prior 검증 문서화
+- PR #35: 대표 smoke fixture 생성기 추가
+- 진행 중 #36: 실제 depth/pose 입력 전 `.npz` file geometry adapter 준비
 
 계속 제외하는 것:
 
@@ -65,8 +69,8 @@
 |---|---:|---|
 | T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있다. |
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
-| T3 Geometry adapter | 일부 구현 | mock geometry는 있다. 실제 MapAnything/VGGT/COLMAP depth/pose adapter는 아직 없다. |
-| T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 기반이다. |
+| T3 Geometry adapter | 일부 구현 | mock geometry와 `.npz` file geometry loader가 있다. 실제 MapAnything/VGGT/COLMAP depth/pose adapter는 아직 없다. |
+| T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반이다. |
 | T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직은 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
 | T7 Evaluation | 구현됨 | 기본 metric 계산 구조가 있다. 실제 실측값 기반 검증은 다음 단계에서 강화해야 한다. |
@@ -114,13 +118,13 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **대표 smoke fixture 정리**
-   - 진행 중: 노트북, 영수증, 태블릿+키보드를 synthetic 대표 성공 fixture로 고정한다.
+1. **실제 depth/pose adapter 설계**
+   - 진행 중: MapAnything/VGGT/COLMAP 중 하나를 바로 붙이기 전에 `GeometryRecord` contract와 `.npz` file geometry adapter를 안정화한다.
+   - 외부 모델 산출물은 우선 `depth_m`, `intrinsics`, `camera_to_world` key를 가진 `.npz`로 정규화한다.
+   - `prior_from_mask --geometry-npz`로 mock depth를 실제 depth map과 camera pose로 대체할 준비를 한다.
+2. **대표 smoke fixture와 file geometry 결합 smoke**
+   - 완료된 대표 fixture(노트북, 영수증, 태블릿+키보드)를 사용해 `segment_image -> prior_from_mask --geometry-npz` 흐름을 검증한다.
    - 원본 개인 사진은 커밋하지 않는다.
-   - `python -m object3d.pipeline.generate_smoke_fixtures`로 재현 가능한 fixture를 생성한다.
-2. **실제 depth/pose adapter 설계**
-   - MapAnything/VGGT/COLMAP 중 하나를 바로 붙이기 전에 `GeometryRecord` contract를 다시 점검한다.
-   - 지금 mock depth로 연결된 부분을 실제 depth map과 camera pose로 대체할 준비를 한다.
 3. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
