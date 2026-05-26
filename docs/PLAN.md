@@ -17,6 +17,7 @@
 - VGGT smoke 실수 기록: `docs/runbooks/20260526-vggt-smoke-troubleshooting.md`
 - 실제 노트북 VGGT MPS smoke 검증: `docs/validation/20260526-real-laptop-vggt-mps-smoke.md`
 - 실제 노트북 SAM2 + VGGT mask smoke 검증: `docs/validation/20260526-real-laptop-sam2-vggt-mask-smoke.md`
+- 실제 노트북 point cloud outlier filter smoke 검증: `docs/validation/20260526-real-laptop-outlier-filter-smoke.md`
 
 ## 현재 상태
 
@@ -38,6 +39,7 @@
 - 실제 노트북 사진 1장으로 Mac MPS VGGT checkpoint smoke가 `geometry.npz -> prior_from_mask -> Rerun .rrd`까지 성공했다.
 - mask/depth shape mismatch, macOS image permission, Rerun viewer PATH 문제는 코드와 runbook에 반영했다.
 - 같은 노트북 사진에 SAM2 mask를 적용해 manual box보다 effective point count를 26.5% 줄였다.
+- SAM2 + VGGT point cloud에 radial percentile outlier filter를 적용해 bbox 최대 축을 31.2% 줄였다.
 
 ## 현재 단계
 
@@ -59,7 +61,7 @@
 
 다만 아직 **실제 3D 정확도 검증 단계는 아니다.**
 
-현재 `prior_from_mask`는 기본값으로 `--depth-m 2.0` 같은 고정 mock depth를 사용한다. 필요하면 `--geometry-npz`로 외부 depth/pose 산출물을 넣을 수 있고, Mac MPS에서 VGGT 단일 이미지 산출물을 이 경로에 실제로 연결해 봤다. 다만 단일 이미지, manual box mask, outlier removal 전 단계라서 지금 만들어지는 3D bbox 크기 값은 아직 실제 물체 치수로 보지 않는다. 현재 의미는 **실제 VGGT geometry가 3D prior 파이프라인 끝까지 연결되는지 보는 구조 검증 값**이다.
+현재 `prior_from_mask`는 기본값으로 `--depth-m 2.0` 같은 고정 mock depth를 사용한다. 필요하면 `--geometry-npz`로 외부 depth/pose 산출물을 넣을 수 있고, Mac MPS에서 VGGT 단일 이미지 산출물을 이 경로에 실제로 연결해 봤다. 또한 optional point cloud outlier filter로 bbox를 끌고 가는 꼬리 점을 일부 줄일 수 있다. 다만 단일 이미지 depth와 scale 검증 전 단계라서 지금 만들어지는 3D bbox 크기 값은 아직 실제 물체 치수로 보지 않는다. 현재 의미는 **실제 VGGT geometry가 3D prior 파이프라인 끝까지 연결되는지 보는 구조 검증 값**이다.
 
 ## 작업 범위
 
@@ -76,6 +78,7 @@
 - 이슈 #46 / PR #47: VGGT checkpoint smoke wrapper
 - 이슈 #48: VGGT smoke 트러블슈팅 후속 코드/문서 반영
 - T17: 실제 노트북 SAM2 mask + VGGT downstream smoke
+- T18: 실제 노트북 point cloud outlier filter smoke
 
 계속 제외하는 것:
 
@@ -93,7 +96,7 @@
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
 | T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton, `vggt_geometry` CLI skeleton이 있다. 실제 Mac MPS 단일 이미지 VGGT smoke는 성공했고 MapAnything/COLMAP adapter는 아직 없다. |
 | T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반으로 검증한다. |
-| T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직은 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
+| T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직과 radial percentile outlier filter가 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
 | T7 Evaluation | 구현됨 | 기본 metric 계산 구조가 있다. 실제 실측값 기반 검증은 다음 단계에서 강화해야 한다. |
 | T8 Visualization | 구현됨 | summary backend와 Rerun backend가 있다. `.rrd` recording 저장도 확인했다. |
@@ -125,6 +128,11 @@
   - manual box 대비 SAM2 mask 원본 pixel 26.3% 감소
   - manual box 대비 VGGT geometry effective point count 26.5% 감소
   - 결과 이미지: `docs/validation/assets/20260526-real-laptop-sam2-vggt-mask-comparison.jpg`
+- 실제 노트북 point cloud outlier filter smoke
+  - 같은 SAM2 mask와 같은 VGGT `geometry.npz` 사용
+  - radial percentile filter로 point 5.0% 제거
+  - bbox 최대 축 31.2% 감소, bbox volume 후보 38.5% 감소
+  - 결과 이미지: `docs/validation/assets/20260526-real-laptop-outlier-filter-3d-comparison.jpg`
 
 ## 실패/주의 케이스 개선 메모
 
@@ -150,15 +158,15 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **point cloud outlier removal**
-   - SAM2 mask로 배경 픽셀은 줄였지만 단일 이미지 depth noise와 outlier가 남아 있다.
-   - 다음 PR에서는 object point cloud에서 극단값을 줄이는 후처리를 추가한다.
-2. **Image #1/#3/#4 multi-view VGGT smoke**
+1. **Image #1/#3/#4 multi-view VGGT smoke**
    - 단일 이미지 depth 한계를 확인했으므로 여러 각도 입력으로 pose/depth 안정성이 나아지는지 본다.
    - 성공하면 PR에는 원본/대용량 산출물 대신 작은 overlay/contact sheet와 summary를 포함한다.
-3. **실측값 기반 evaluation 강화**
+2. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
+3. **outlier filter 비교 강화**
+   - radial percentile 외에 axis quantile, local density, statistical radius 후보를 비교한다.
+   - 얇은 물체처럼 실제로 긴 구조를 과하게 자르지 않는 기준을 정한다.
 4. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
