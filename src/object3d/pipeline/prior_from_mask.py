@@ -40,6 +40,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional .npz file containing depth_m, intrinsics, and camera_to_world.",
     )
     parser.add_argument(
+        "--mask-cleanup",
+        choices=("none", "largest_component"),
+        default="none",
+        help="Optional mask cleanup before 3D backprojection.",
+    )
+    parser.add_argument(
+        "--mask-erode-pixels",
+        type=int,
+        default=0,
+        help="Number of 3x3 erosion iterations to trim mask boundaries.",
+    )
+    parser.add_argument(
         "--outlier-filter",
         choices=("none", "radial_percentile"),
         default="none",
@@ -61,6 +73,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_dir=args.output_dir,
         depth_m=args.depth_m,
         geometry_npz_path=args.geometry_npz,
+        mask_cleanup=args.mask_cleanup,
+        mask_erode_pixels=args.mask_erode_pixels,
         outlier_filter=args.outlier_filter,
         outlier_keep_ratio=args.outlier_keep_ratio,
     )

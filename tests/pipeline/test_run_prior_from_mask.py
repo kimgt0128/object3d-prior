@@ -220,3 +220,80 @@ def test_run_prior_from_mask_can_filter_outlier_points(tmp_path: Path) -> None:
     assert summary["point_count"] == 15
     assert summary["filtered_point_count"] == 15
     assert summary["removed_point_count"] == 1
+
+
+def test_run_prior_from_mask_can_cleanup_mask_before_backprojection(
+    tmp_path: Path,
+) -> None:
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[2:6, 2:6] = True
+    mask[0, 0] = True
+    mask_path = tmp_path / "mask.npy"
+    segmentation_summary = tmp_path / "summary.json"
+    np.save(mask_path, mask)
+    segmentation_summary.write_text(
+        json.dumps(
+            {
+                "backend": "manual",
+                "object_id": "object_001",
+                "frame_id": 0,
+                "image_path": str(tmp_path / "frame.png"),
+                "confidence": 0.8,
+                "mask_shape": [8, 8],
+                "mask_pixels": int(mask.sum()),
+                "mask_npy": str(mask_path),
+                "summary_json": str(segmentation_summary),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    summary = run_prior_from_mask(
+        segmentation_summary_path=segmentation_summary,
+        output_dir=tmp_path / "prior",
+        depth_m=2.0,
+        mask_cleanup="largest_component",
+        mask_erode_pixels=0,
+    )
+
+    assert summary["mask_cleanup"] == "largest_component"
+    assert summary["mask_pixels_before_cleanup"] == 17
+    assert summary["mask_pixels_after_cleanup"] == 16
+    assert summary["removed_mask_pixels"] == 1
+    assert summary["mask_pixels"] == 16
+    assert summary["point_count"] == 16
+    assert Path(summary["cleaned_mask_npy"]).exists()
+    assert summary["mask_npy"] == summary["cleaned_mask_npy"]
+
+
+def test_prior_from_mask_cli_accepts_mask_cleanup_args(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    segmentation_summary = _write_segmentation_summary(tmp_path)
+    output_dir = tmp_path / "prior"
+
+    exit_code = main(
+        [
+            "--segmentation-summary",
+            str(segmentation_summary),
+            "--output-dir",
+            str(output_dir),
+            "--depth-m",
+            "2.5",
+            "--mask-cleanup",
+            "largest_component",
+            "--mask-erode-pixels",
+            "1",
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert stdout["mask_cleanup"] == "largest_component"
+    assert stdout["mask_erode_pixels"] == 1
+    assert stdout["mask_pixels_before_cleanup"] == 28
+    assert stdout["mask_pixels_after_cleanup"] == 10
+    assert stdout["point_count"] == 10
+    assert Path(stdout["cleaned_mask_npy"]).exists()
