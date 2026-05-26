@@ -33,6 +33,7 @@ class SmokeFixtureCase:
     next_action: str
     box_xyxy: tuple[int, int, int, int] | None = None
     image_size_wh: tuple[int, int] = (320, 240)
+    geometry_depth_m: float = 2.0
 
 
 def smoke_fixture_catalog() -> tuple[SmokeFixtureCase, ...]:
@@ -46,6 +47,7 @@ def smoke_fixture_catalog() -> tuple[SmokeFixtureCase, ...]:
             source_observation="화면, 키보드, 본체를 대부분 포함해 큰 객체 대표 샘플로 적합했다.",
             next_action="대표 smoke fixture로 고정한다.",
             box_xyxy=(48, 42, 280, 206),
+            geometry_depth_m=2.2,
         ),
         SmokeFixtureCase(
             case_id="receipt",
@@ -55,6 +57,7 @@ def smoke_fixture_catalog() -> tuple[SmokeFixtureCase, ...]:
             source_observation="작은 종이 객체를 깔끔하게 분리했다.",
             next_action="작은 평면 객체 대표 smoke fixture로 고정한다.",
             box_xyxy=(126, 74, 214, 142),
+            geometry_depth_m=1.3,
         ),
         SmokeFixtureCase(
             case_id="tablet_keyboard",
@@ -64,6 +67,7 @@ def smoke_fixture_catalog() -> tuple[SmokeFixtureCase, ...]:
             source_observation="전체 기기 윤곽을 가장 안정적으로 분리했다.",
             next_action="경계가 큰 전자기기 대표 smoke fixture로 고정한다.",
             box_xyxy=(46, 36, 282, 218),
+            geometry_depth_m=1.8,
         ),
         SmokeFixtureCase(
             case_id="transparent_cup",
@@ -138,10 +142,12 @@ def _materialize_case(case: SmokeFixtureCase, output_dir: Path) -> dict:
     case_dir.mkdir(parents=True, exist_ok=True)
     image_path = case_dir / "image.png"
     prompt_path = case_dir / "prompt.json"
+    geometry_path = case_dir / "geometry.npz"
     metadata_path = case_dir / "metadata.json"
 
     image = _draw_case_image(case)
     save_png_rgb(image, image_path)
+    _write_case_geometry_npz(case, geometry_path)
     prompt = {
         "box_xyxy": list(case.box_xyxy or (0, 0, 1, 1)),
         "multimask_output": True,
@@ -153,12 +159,34 @@ def _materialize_case(case: SmokeFixtureCase, output_dir: Path) -> dict:
     metadata = asdict(case) | {
         "image_path": str(image_path),
         "prompt_json": str(prompt_path),
+        "geometry_npz": str(geometry_path),
     }
     metadata_path.write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     return metadata | {"metadata_json": str(metadata_path)}
+
+
+def _write_case_geometry_npz(case: SmokeFixtureCase, geometry_path: Path) -> None:
+    width, height = case.image_size_wh
+    depth_m = np.full((height, width), case.geometry_depth_m, dtype=np.float32)
+    focal = float(max(width, height))
+    intrinsics = np.array(
+        [
+            [focal, 0.0, width / 2.0],
+            [0.0, focal, height / 2.0],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    camera_to_world = np.eye(4, dtype=np.float32)
+    np.savez(
+        geometry_path,
+        depth_m=depth_m,
+        intrinsics=intrinsics,
+        camera_to_world=camera_to_world,
+    )
 
 
 def _draw_case_image(case: SmokeFixtureCase) -> np.ndarray:

@@ -19,3 +19,5 @@ def test_generate_smoke_fixtures_cli_writes_manifest(tmp_path: Path, capsys) -> 
         "receipt",
         "tablet_keyboard",
     ]
+    for case in stdout["cases"]:
+        assert Path(case["geometry_npz"]).exists()
