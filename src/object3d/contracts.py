@@ -32,7 +32,13 @@ class MaskRecord:
 
 @dataclass(frozen=True)
 class GeometryRecord:
-    """단일 프레임의 depth와 camera geometry."""
+    """단일 프레임의 depth와 camera geometry.
+
+    Contract:
+    - `depth_m`: meter 단위의 `(H, W)` depth map
+    - `intrinsics`: pinhole camera matrix `[[fx, 0, cx], [0, fy, cy], [0, 0, 1]]`
+    - `camera_to_world`: camera 좌표계를 world 좌표계로 보내는 `(4, 4)` transform
+    """
 
     frame_id: int
     depth_m: FloatArray
