@@ -35,7 +35,8 @@ SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화
 `object3d.adapters.geometry.vggt`는 VGGT raw prediction을 같은 `.npz` 계약으로
 저장한다. VGGT의 extrinsic은 공식 README 기준 camera-from-world이므로,
 내부 계약에 맞춰 `camera_to_world`로 역변환해 저장한다. 실제 VGGT checkpoint
-다운로드와 GPU inference는 별도 smoke 단계로 분리한다.
+다운로드와 GPU inference는 `object3d.pipeline.vggt_geometry` CLI로 시도한다.
+기본 테스트는 injected fake runner로 고정해 VGGT dependency가 없어도 통과한다.
 
 ## Mock MVP 실행
 

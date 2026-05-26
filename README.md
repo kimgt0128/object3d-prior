@@ -144,12 +144,21 @@ PY
 
 ### 공통 downstream 확인
 
-VGGT가 만든 `geometry.npz`가 있으면 기존 3D prior 단계는 그대로 이어집니다.
+VGGT dependency와 checkpoint가 준비된 환경에서는 먼저 이미지 1장을 `geometry.npz`로 저장합니다.
 
 ```bash
 PYTHONPATH=src python -m object3d.pipeline.generate_smoke_fixtures \
   --output-dir outputs/representative-smoke-fixtures
 
+PYTHONPATH=src python -m object3d.pipeline.vggt_geometry \
+  --image-path outputs/representative-smoke-fixtures/laptop/image.png \
+  --output-path outputs/vggt-smoke/laptop/geometry.npz \
+  --device cuda
+```
+
+`geometry.npz`가 있으면 기존 3D prior 단계는 그대로 이어집니다.
+
+```bash
 PYTHONPATH=src python -m object3d.pipeline.segment_image \
   --backend manual \
   --image-path outputs/representative-smoke-fixtures/laptop/image.png \

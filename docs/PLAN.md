@@ -30,6 +30,8 @@
 - VGGT, MapAnything, COLMAP을 비교했고 다음 실제 geometry adapter 1순위는 VGGT로 정했다.
 - VGGT prediction을 표준 `.npz` geometry contract로 저장하는 adapter skeleton이 있다.
 - 로컬 MacBook Pro M5/MPS와 학교 NVIDIA RTX 30/40 series CUDA 환경을 나눠 실제 VGGT smoke 준비 절차를 문서화했다.
+- `vggt_geometry` CLI skeleton은 이미지 입력을 받아 VGGT prediction을 `geometry.npz`로 저장하는 경로를 갖는다.
+- 기본 테스트는 injected fake runner로 통과하므로, VGGT checkpoint가 없어도 test suite가 깨지지 않는다.
 
 ## 현재 단계
 
@@ -65,12 +67,12 @@
 - 이슈 #40: geometry backend 후보 조사와 VGGT 1순위 결정
 - 이슈 #42: VGGT geometry adapter skeleton
 - 이슈 #44: VGGT 로컬/학교 GPU 실행 환경별 준비 문서
+- 진행 중 #46: VGGT checkpoint smoke wrapper
 
 계속 제외하는 것:
 
 - SAM2 checkpoint/config 파일 커밋
-- 실제 depth 모델 연결
-- VGGT 실제 checkpoint inference 자동화
+- 실제 VGGT checkpoint smoke 결과 커밋
 - MapAnything adapter 구현
 - output 산출물 커밋
 - `project/`, `cv_tutorial/`, `reference/`
@@ -81,7 +83,7 @@
 |---|---:|---|
 | T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있다. |
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
-| T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton이 있다. 실제 VGGT checkpoint smoke와 MapAnything/COLMAP adapter는 아직 없다. |
+| T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton, `vggt_geometry` CLI skeleton이 있다. 실제 VGGT checkpoint smoke 결과와 MapAnything/COLMAP adapter는 아직 없다. |
 | T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. 현재는 mock depth 또는 file geometry 기반으로 검증한다. |
 | T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직은 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
@@ -136,8 +138,8 @@
 우선순위는 다음 순서가 좋다.
 
 1. **실제 VGGT checkpoint smoke**
-   - `docs/runbooks/20260526-vggt-runtime-environments.md` 기준으로 로컬 MPS 또는 학교 CUDA 환경을 준비한다.
-   - 대표 fixture 1장으로 VGGT inference를 실행한다.
+   - `docs/runbooks/20260526-vggt-runtime-environments.md` 기준으로 로컬 MPS 또는 학교 CUDA 환경에서 VGGT dependency를 준비한다.
+   - `object3d.pipeline.vggt_geometry` CLI로 대표 fixture 1장 VGGT inference를 실행한다.
    - VGGT prediction을 `geometry.npz`로 저장하고 `prior_from_mask --geometry-npz`까지 연결한다.
    - 성공하면 PR에는 원본/대용량 산출물 대신 작은 overlay/contact sheet와 summary를 포함한다.
 2. **실측값 기반 evaluation 강화**
