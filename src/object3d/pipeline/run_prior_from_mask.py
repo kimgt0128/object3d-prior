@@ -15,6 +15,8 @@ from object3d.contracts import GeometryRecord
 from object3d.contracts import MaskRecord
 from object3d.geometry.backprojection import backproject_masked_points
 from object3d.priors.bbox import fit_oriented_bbox
+from object3d.reconstruction.mask_cleanup import clean_mask_for_object_prior
+from object3d.reconstruction.mask_cleanup import MASK_CLEANUP_MODES
 from object3d.reconstruction.outlier_filter import (
     filter_point_cloud_radial_percentile,
 )
@@ -27,6 +29,8 @@ def run_prior_from_mask(
     output_dir: Path,
     depth_m: float,
     geometry_npz_path: Path | None = None,
+    mask_cleanup: str = "none",
+    mask_erode_pixels: int = 0,
     outlier_filter: str = "none",
     outlier_keep_ratio: float = 0.95,
 ) -> dict[str, Any]:
@@ -61,6 +65,13 @@ def run_prior_from_mask(
         source_mask_path=mask_path,
         output_dir=output_dir,
     )
+    mask, cleanup_summary = _clean_mask(
+        mask=mask,
+        current_mask_path=Path(mask_summary["mask_npy"]),
+        output_dir=output_dir,
+        mask_cleanup=mask_cleanup,
+        mask_erode_pixels=mask_erode_pixels,
+    )
     cloud = backproject_masked_points(mask, geometry)
     cloud, outlier_summary = _filter_cloud(
         cloud=cloud,
@@ -91,6 +102,7 @@ def run_prior_from_mask(
         "summary_json": str(summary_path),
     }
     summary.update(mask_summary)
+    summary.update(cleanup_summary)
     summary.update(geometry_summary)
     summary.update(outlier_summary)
     summary_path.write_text(
@@ -156,6 +168,47 @@ def _filter_cloud(
             keep_ratio=outlier_keep_ratio,
         )
     raise ValueError("outlier_filter must be 'none' or 'radial_percentile'")
+
+
+def _clean_mask(
+    *,
+    mask: MaskRecord,
+    current_mask_path: Path,
+    output_dir: Path,
+    mask_cleanup: str,
+    mask_erode_pixels: int,
+) -> tuple[MaskRecord, dict[str, Any]]:
+    if mask_cleanup not in MASK_CLEANUP_MODES:
+        raise ValueError("mask_cleanup must be 'none' or 'largest_component'")
+
+    cleaned_mask, cleanup_summary = clean_mask_for_object_prior(
+        mask.mask,
+        mode=mask_cleanup,
+        erode_pixels=mask_erode_pixels,
+    )
+    should_save_cleaned_mask = mask_cleanup != "none" or mask_erode_pixels > 0
+    if not should_save_cleaned_mask:
+        return mask, {
+            **cleanup_summary,
+            "mask_npy": str(current_mask_path),
+        }
+
+    cleaned_mask_path = output_dir / "mask_cleaned.npy"
+    np.save(cleaned_mask_path, cleaned_mask)
+    return (
+        MaskRecord(
+            frame_id=mask.frame_id,
+            object_id=mask.object_id,
+            mask=cleaned_mask,
+            confidence=mask.confidence,
+        ),
+        {
+            **cleanup_summary,
+            "pre_cleanup_mask_npy": str(current_mask_path),
+            "cleaned_mask_npy": str(cleaned_mask_path),
+            "mask_npy": str(cleaned_mask_path),
+        },
+    )
 
 
 def _align_mask_to_geometry(
