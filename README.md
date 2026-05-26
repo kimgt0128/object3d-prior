@@ -89,7 +89,7 @@ docs/
 
 ## VGGT 실행 환경별 명령
 
-실제 VGGT checkpoint smoke는 아직 다음 T로 분리되어 있습니다. 현재 repo에는 VGGT prediction을 `geometry.npz`로 저장하는 adapter skeleton이 있고, 실행 환경 준비 절차는 아래처럼 나눕니다.
+실제 VGGT checkpoint smoke는 Mac MPS 단일 이미지 기준으로 통과했습니다. 현재 repo에는 VGGT prediction을 `geometry.npz`로 저장하는 adapter와 downstream prior 연결 경로가 있고, 실행 환경 준비 절차는 아래처럼 나눕니다.
 
 자세한 기준은 [VGGT runtime environment runbook](docs/runbooks/20260526-vggt-runtime-environments.md)에 정리했습니다.
 
@@ -157,6 +157,7 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry \
 ```
 
 `geometry.npz`가 있으면 기존 3D prior 단계는 그대로 이어집니다.
+VGGT depth 해상도와 segmentation mask 해상도가 다르면 `prior_from_mask`가 mask를 geometry 해상도에 맞춰 자동 조정하고 summary에 기록합니다.
 
 ```bash
 PYTHONPATH=src python -m object3d.pipeline.segment_image \
@@ -185,4 +186,4 @@ PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
 5. object point cloud와 oriented bbox
 6. scene manifest와 Rerun recording 저장
 
-다음 큰 작업은 실제 VGGT checkpoint smoke입니다. 먼저 1장 입력으로 depth/pose를 추정해 `geometry.npz`를 만들고, 기존 `prior_from_mask --geometry-npz` 경로에 연결합니다.
+다음 큰 작업은 VGGT 결과 품질 개선입니다. 단일 이미지 manual box smoke는 통과했으므로, 다음은 SAM2 mask 적용, point cloud outlier removal, Image #1/#3/#4 multi-view smoke 순서로 품질을 올립니다.
