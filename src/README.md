@@ -12,6 +12,8 @@
 - `object3d.adapters.segmentation.sam`: SAM/SAM2 predictor 출력을 `MaskRecord`로 변환하는 adapter contract
 - `object3d.adapters.segmentation.manual`: 실제 모델 없이 수동 prompt를 mask로 바꾸는 manual predictor
 - `object3d.adapters.geometry.mock`: 실 geometry 모델 연동 전 mock depth/pose adapter
+- `object3d.adapters.geometry.file`: 공통 `.npz` geometry loader
+- `object3d.adapters.geometry.vggt`: VGGT prediction을 `.npz` geometry contract로 바꾸는 adapter skeleton
 - `object3d.geometry`: masked back-projection
 - `object3d.reconstruction`: object point cloud fusion
 - `object3d.priors`: axis-aligned/PCA oriented bbox 기반 object prior fitting
@@ -29,6 +31,11 @@ SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화
 `object3d.adapters.geometry.file`은 실제 depth/pose 모델을 바로 실행하지 않고,
 각 모델이 만든 geometry 산출물을 공통 `.npz` 파일로 받은 뒤 `GeometryRecord`로
 정규화한다.
+
+`object3d.adapters.geometry.vggt`는 VGGT raw prediction을 같은 `.npz` 계약으로
+저장한다. VGGT의 extrinsic은 공식 README 기준 camera-from-world이므로,
+내부 계약에 맞춰 `camera_to_world`로 역변환해 저장한다. 실제 VGGT checkpoint
+다운로드와 GPU inference는 별도 smoke 단계로 분리한다.
 
 ## Mock MVP 실행
 
