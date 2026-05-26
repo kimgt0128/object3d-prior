@@ -39,6 +39,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional .npz file containing depth_m, intrinsics, and camera_to_world.",
     )
+    parser.add_argument(
+        "--outlier-filter",
+        choices=("none", "radial_percentile"),
+        default="none",
+        help="Optional point cloud outlier filter before bbox fitting.",
+    )
+    parser.add_argument(
+        "--outlier-keep-ratio",
+        type=float,
+        default=0.95,
+        help="Fraction of points to keep for radial_percentile filtering.",
+    )
     return parser
 
 
@@ -49,6 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_dir=args.output_dir,
         depth_m=args.depth_m,
         geometry_npz_path=args.geometry_npz,
+        outlier_filter=args.outlier_filter,
+        outlier_keep_ratio=args.outlier_keep_ratio,
     )
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
