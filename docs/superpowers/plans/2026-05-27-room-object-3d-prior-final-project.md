@@ -317,7 +317,7 @@ git commit -m "feat(#T22): keyframe VGGT batch geometry 저장 추가" \
 - Test: `tests/pipeline/test_run_segment_keyframes.py`
 - Create: `docs/runbooks/20260527-room-video-capture-guide.md`
 
-- [ ] **Step 1: Define object prompt manifest**
+- [x] **Step 1: Define object prompt manifest**
 
 Use a JSON format that is easy to hand-author:
 
@@ -337,7 +337,7 @@ Use a JSON format that is easy to hand-author:
 }
 ```
 
-- [ ] **Step 2: Write failing batch segmentation test**
+- [x] **Step 2: Write failing batch segmentation test**
 
 ```python
 def test_run_segment_keyframes_runs_manual_prompts_for_each_object_frame(tmp_path):
@@ -356,7 +356,7 @@ def test_run_segment_keyframes_runs_manual_prompts_for_each_object_frame(tmp_pat
     assert Path(summary["objects"][0]["frames"][0]["summary_json"]).exists()
 ```
 
-- [ ] **Step 3: Implement the runner**
+- [x] **Step 3: Implement the runner**
 
 For each object/frame pair:
 
@@ -374,7 +374,7 @@ segmentation_summary = run_manual_segmentation(
 )
 ```
 
-- [ ] **Step 4: Add CLI**
+- [x] **Step 4: Add CLI**
 
 `segment_keyframes.py` should accept:
 
@@ -388,7 +388,7 @@ segmentation_summary = run_manual_segmentation(
 --device
 ```
 
-- [ ] **Step 5: Add capture runbook**
+- [x] **Step 5: Add capture runbook**
 
 Include these exact project capture rules:
 
@@ -401,7 +401,7 @@ Include these exact project capture rules:
 - Place a scale reference such as A4 paper, ruler, box, or known laptop dimension.
 - Do not commit original room video; copy it under `outputs/.../input/` for local runs.
 
-- [ ] **Step 6: Run tests and commit**
+- [x] **Step 6: Run tests and commit**
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_segment_keyframes.py tests/pipeline/test_run_manual_segmentation.py tests/adapters/test_sam_adapter.py
@@ -429,7 +429,7 @@ git commit -m "feat(#T23): keyframe 객체 segmentation batch 추가" \
 - Test: `tests/pipeline/test_run_fuse_object_priors.py`
 - Modify: `src/object3d/reconstruction/fusion.py` only if needed for summaries.
 
-- [ ] **Step 1: Write failing fusion tests**
+- [x] **Step 1: Write failing fusion tests**
 
 ```python
 def test_run_fuse_object_priors_merges_same_object_clouds(tmp_path):
@@ -452,7 +452,7 @@ def test_run_fuse_object_priors_merges_same_object_clouds(tmp_path):
     assert Path(summary["bbox_ply"]).exists()
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_fuse_object_priors.py
@@ -460,7 +460,7 @@ PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_fuse_object
 
 Expected: module missing.
 
-- [ ] **Step 3: Implement prior summary loader**
+- [x] **Step 3: Implement prior summary loader**
 
 Use existing `read_ascii_ply` to avoid inventing a PLY parser:
 
@@ -473,7 +473,7 @@ cloud = PointCloudRecord(
 )
 ```
 
-- [ ] **Step 4: Fuse and export**
+- [x] **Step 4: Fuse and export**
 
 ```python
 fused_cloud = fuse_point_clouds(clouds)
@@ -484,7 +484,7 @@ scene = export_scene_artifacts(filtered_cloud, prior, output_dir)
 
 Summary must include `input_prior_count`, `input_point_count`, `filtered_point_count`, `removed_point_count`, `source_frame_ids`, and `dimensions_m`.
 
-- [ ] **Step 5: Add CLI**
+- [x] **Step 5: Add CLI**
 
 `fuse_object_priors.py` accepts repeated `--prior-summary` values:
 
@@ -497,7 +497,7 @@ PYTHONPATH=src .venv/bin/python -m object3d.pipeline.fuse_object_priors \
   --outlier-keep-ratio 0.95
 ```
 
-- [ ] **Step 6: Run tests and commit**
+- [x] **Step 6: Run tests and commit**
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_fuse_object_priors.py tests/reconstruction/test_fusion.py tests/priors/test_bbox.py

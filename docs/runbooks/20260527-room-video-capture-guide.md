@@ -67,6 +67,32 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry_batch \
   --max-frames 16
 ```
 
+## PR B 실행 예시
+
+PR B는 keyframe별 물체 prompt를 모아 segmentation을 반복 실행하고, frame별
+object prior를 최종 fused prior로 합친다.
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.segment_keyframes \
+  --frame-manifest "$RUN_DIR/frame_manifest.json" \
+  --prompt-manifest "$RUN_DIR/object_prompts.json" \
+  --output-dir "$RUN_DIR/segmentation" \
+  --backend manual
+```
+
+이후 각 segmentation summary와 해당 frame의 `geometry.npz`를 기존
+`prior_from_mask`에 넣어 frame별 prior summary를 만든다. 같은 object id의 prior가
+2개 이상 생기면 다음처럼 fusion한다.
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.fuse_object_priors \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000000/summary.json" \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000006/summary.json" \
+  --output-dir "$RUN_DIR/fused/laptop_001" \
+  --outlier-filter radial_percentile \
+  --outlier-keep-ratio 0.95
+```
+
 ## Git 원칙
 
 원본 영상, keyframe, VGGT `geometry.npz`, point cloud, Rerun recording은 커밋하지
