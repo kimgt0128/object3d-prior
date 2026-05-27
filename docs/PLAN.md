@@ -16,6 +16,8 @@
 - VGGT 실행 환경 runbook: `docs/runbooks/20260526-vggt-runtime-environments.md`
 - VGGT smoke 실수 기록: `docs/runbooks/20260526-vggt-smoke-troubleshooting.md`
 - 일반 객체 SAM2 -> 3D cleanup runbook: `docs/runbooks/20260526-general-sam2-3d-cleanup.md`
+- 기말 프로젝트 구현 계획: `docs/superpowers/plans/2026-05-27-room-object-3d-prior-final-project.md`
+- 기말 프로젝트 scope 실수 방지 기록: `docs/solutions/workflow-issues/scope-final-project-to-coarse-room-object-priors.md`
 - 실제 노트북 VGGT MPS smoke 검증: `docs/validation/20260526-real-laptop-vggt-mps-smoke.md`
 - 실제 노트북 SAM2 + VGGT mask smoke 검증: `docs/validation/20260526-real-laptop-sam2-vggt-mask-smoke.md`
 - 실제 노트북 point cloud outlier filter smoke 검증: `docs/validation/20260526-real-laptop-outlier-filter-smoke.md`
@@ -67,6 +69,34 @@
 다만 아직 **실제 3D 정확도 검증 단계는 아니다.**
 
 현재 `prior_from_mask`는 기본값으로 `--depth-m 2.0` 같은 고정 mock depth를 사용한다. 필요하면 `--geometry-npz`로 외부 depth/pose 산출물을 넣을 수 있고, Mac MPS에서 VGGT 단일 이미지 산출물을 이 경로에 실제로 연결해 봤다. 또한 optional point cloud outlier filter로 bbox를 끌고 가는 꼬리 점을 일부 줄일 수 있다. 다만 단일 이미지 depth와 scale 검증 전 단계라서 지금 만들어지는 3D bbox 크기 값은 아직 실제 물체 치수로 보지 않는다. 현재 의미는 **실제 VGGT geometry가 3D prior 파이프라인 끝까지 연결되는지 보는 구조 검증 값**이다.
+
+## 기말 프로젝트 제출 방향
+
+이슈 #58 기준으로, 2주 남은 기말 대체 텀프로젝트 방향은 **작은 정적 실내 공간 동영상에서 coarse room context와 object-level 3D prior를 만드는 것**으로 고정한다.
+
+목표를 아래 세 가지까지만 둔다.
+
+1. **방 전체 sparse/dense-ish point cloud**
+   - 완전한 textured mesh가 아니라, 선택 keyframe의 VGGT depth/pose를 이용한 coarse room point cloud다.
+2. **바닥/벽/책상 plane 대략 추정**
+   - semantic label을 자동 확정하지 않고, rough plane candidates와 시각적/수치적 근거를 보여준다.
+3. **물체별 3D bbox 추정**
+   - SAM2/manual mask로 선택한 2-3개 물체를 world-space point cloud로 올리고, frame 간 fusion 뒤 bbox와 실측 오차를 비교한다.
+
+명시적으로 하지 않는 것:
+
+- 방 전체를 깔끔한 3D mesh로 복원한다고 주장하지 않는다.
+- 대규모 scene completion이나 학습 기반 3D generative model을 붙이지 않는다.
+- 투명 컵/얇은 물체/반사 화면을 필수 성공 기준으로 두지 않는다.
+
+실행 단위는 다음 T 순서로 나눈다.
+
+- T21: video keyframe extraction
+- T22: VGGT batch geometry from keyframes
+- T23: keyframe object segmentation batch
+- T24: object-aware multi-view fusion
+- T25: coarse room point cloud + rough plane summary
+- T26: measurement evaluation + final smoke report
 
 ## 작업 범위
 
