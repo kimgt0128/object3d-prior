@@ -16,6 +16,7 @@
 - VGGT 실행 환경 runbook: `docs/runbooks/20260526-vggt-runtime-environments.md`
 - VGGT smoke 실수 기록: `docs/runbooks/20260526-vggt-smoke-troubleshooting.md`
 - 일반 객체 SAM2 -> 3D cleanup runbook: `docs/runbooks/20260526-general-sam2-3d-cleanup.md`
+- 방 영상 촬영 guide: `docs/runbooks/20260527-room-video-capture-guide.md`
 - 기말 프로젝트 구현 계획: `docs/superpowers/plans/2026-05-27-room-object-3d-prior-final-project.md`
 - 기말 프로젝트 scope 실수 방지 기록: `docs/solutions/workflow-issues/scope-final-project-to-coarse-room-object-priors.md`
 - 실제 노트북 VGGT MPS smoke 검증: `docs/validation/20260526-real-laptop-vggt-mps-smoke.md`
@@ -47,6 +48,7 @@
 - SAM2 + VGGT point cloud에 radial percentile outlier filter를 적용해 bbox 최대 축을 31.2% 줄였다.
 - 노트북 사진 5장 few-view VGGT validation을 수행했고, per-view 3D prior는 생성되지만 view별 bbox 치수가 크게 흔들리는 것을 확인했다.
 - SAM2 mask를 3D로 올리기 전에 largest component cleanup과 optional erosion을 적용하는 일반 객체용 cleanup 옵션을 추가했다.
+- PR A / 이슈 #60 범위로 방 영상 keyframe 추출 CLI와 keyframe manifest 기반 VGGT batch geometry CLI를 추가했다.
 
 ## 현재 단계
 
@@ -116,6 +118,7 @@
 - T18: 실제 노트북 point cloud outlier filter smoke
 - T19: 실제 노트북 5장 multi-view VGGT validation
 - 이슈 #56 / T20: 일반 객체용 SAM2 mask cleanup + 3D outlier cleanup preset
+- 이슈 #60 / PR A: 방 영상 keyframe extraction + VGGT batch geometry
 
 계속 제외하는 것:
 
@@ -129,9 +132,9 @@
 
 | 단계 | 상태 | 설명 |
 |---|---:|---|
-| T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있다. |
+| T1 Capture / frame sampling | 구현됨 | 영상/이미지 입력을 frame record/manifest로 다루는 기본 구조가 있고, 방 영상 keyframe 추출 CLI가 있다. |
 | T2 Segmentation adapter | 구현됨 | manual backend와 SAM2 backend가 있다. 실제 SAM2 checkpoint smoke도 통과했다. |
-| T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton, `vggt_geometry` CLI skeleton이 있다. 실제 Mac MPS 단일 이미지 VGGT smoke는 성공했고 MapAnything/COLMAP adapter는 아직 없다. |
+| T3 Geometry adapter | 일부 구현 | mock geometry, `.npz` file geometry loader, VGGT prediction -> `.npz` adapter skeleton, `vggt_geometry` CLI, keyframe manifest 기반 `vggt_geometry_batch` CLI가 있다. 실제 Mac MPS 단일 이미지 VGGT smoke는 성공했고 MapAnything/COLMAP adapter는 아직 없다. |
 | T4 Masked back-projection | 구현됨 | mask 영역 픽셀만 3D point로 변환한다. back-projection 전에 mask shape alignment와 largest component / erosion cleanup을 선택적으로 적용할 수 있다. |
 | T5 Object point cloud fusion | 구현됨 | point cloud fusion 기본 로직과 radial percentile outlier filter가 있다. 실제 multi-view pose 기반 정합 검증은 아직 약하다. |
 | T6 Oriented bbox / object prior | 구현됨 | PCA 기반 oriented bbox와 크기 후보를 만든다. |
@@ -182,6 +185,10 @@
   - 노트북, 책상, 컵, 가구별 적용 기준과 실패 조건을 runbook에 기록
   - 기존 실제 노트북 5-view 산출물로 smoke를 재실행해 view1/view5의 과도한 bbox가 줄어드는 것을 확인
   - 결과 이미지: `docs/validation/assets/20260526-general-sam2-3d-cleanup-comparison.jpg`
+- 방 영상 keyframe + VGGT batch geometry
+  - `video_keyframes` CLI로 원본 방 영상에서 reproducible frame manifest와 keyframe 이미지를 생성한다.
+  - `vggt_geometry_batch` CLI로 manifest의 keyframe 묶음을 VGGT에 넣고 frame별 `geometry.npz`를 저장한다.
+  - 기본 테스트는 synthetic frame source와 injected fake VGGT runner로 고정해 checkpoint 없이 통과한다.
 
 ## 실패/주의 케이스 개선 메모
 
@@ -207,19 +214,21 @@
 
 우선순위는 다음 순서가 좋다.
 
-1. **Object-aware multi-view fusion**
-   - 현재는 multi-view VGGT를 돌려도 view별 prior를 따로 만든다.
-   - 다음 단계는 같은 object id의 view별 point cloud를 하나의 world/object frame으로 합치는 것이다.
-2. **Open laptop subpart segmentation**
+1. **Keyframe object segmentation batch**
+   - PR A 다음 단계는 keyframe별 노트북/책상/컵/가구 prompt manifest를 만들고, SAM2/manual segmentation을 반복 실행하는 것이다.
+2. **Object-aware multi-view fusion**
+   - 현재는 keyframe geometry를 만들 수 있지만, view별 prior를 아직 하나로 합치지 않는다.
+   - 같은 object id의 view별 point cloud를 하나의 world/object frame으로 합치는 것이 다음 핵심이다.
+3. **Open laptop subpart segmentation**
    - 열린 노트북은 화면과 본체가 꺾인 두 평면 구조라 단일 bbox가 불안정하다.
    - `laptop_screen`, `laptop_base`를 분리하면 bbox 안정성이 나아질 가능성이 크다.
-3. **실측값 기반 evaluation 강화**
+4. **실측값 기반 evaluation 강화**
    - 대표 객체 하나를 정하고 실제 width/depth/height를 수동으로 잰다.
    - mock depth 결과와 실제 depth 결과를 분리해서 비교한다.
-4. **outlier filter 비교 강화**
+5. **outlier filter 비교 강화**
    - radial percentile 외에 axis quantile, local density, statistical radius 후보를 비교한다.
    - 얇은 물체처럼 실제로 긴 구조를 과하게 자르지 않는 기준을 정한다.
-5. **주의/실패 케이스를 별도 risk set으로 관리**
+6. **주의/실패 케이스를 별도 risk set으로 관리**
    - 투명체, 얇은 물체, 화면 반사 물체는 대표 성공 smoke와 분리한다.
    - 개선 작업을 할 때만 별도 PR로 다룬다.
 
