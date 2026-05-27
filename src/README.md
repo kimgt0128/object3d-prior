@@ -38,6 +38,11 @@ SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화
 다운로드와 GPU inference는 `object3d.pipeline.vggt_geometry` CLI로 시도한다.
 기본 테스트는 injected fake runner로 고정해 VGGT dependency가 없어도 통과한다.
 
+`object3d.pipeline.video_keyframes`는 방 영상 하나를 frame manifest와 keyframe
+이미지로 줄인다. `object3d.pipeline.vggt_geometry_batch`는 그 manifest를 읽어
+VGGT를 한 번 호출하고 frame별 `geometry.npz`를 저장한다. 이 둘은 기말 프로젝트
+PR A(T21-T22)의 핵심 경로다.
+
 ## Mock MVP 실행
 
 아직 패키지 설치 설정을 두지 않았으므로 로컬 실행은 `PYTHONPATH=src`를 붙인다.
@@ -183,6 +188,57 @@ PYTHONPATH=src python3 -m object3d.pipeline.prior_from_mask \
 이 경로는 아직 MapAnything/VGGT/COLMAP inference를 실행하지 않는다. 목적은
 모델별 adapter가 만든 depth/pose 파일이 downstream 3D prior 파이프라인에
 같은 계약으로 들어갈 수 있는지 확인하는 것이다.
+
+## 방 영상 Keyframe과 VGGT Batch Geometry
+
+실제 방 영상은 원본 파일을 저장소에 넣지 않고 로컬 경로에서 읽는다. 산출물은
+`outputs/` 아래에 두고, 필요하면 검증용 이미지나 요약 문서만 따로 커밋한다.
+
+```bash
+ROOM_VIDEO=/absolute/path/to/room-video.mov
+RUN_DIR=outputs/room-video-pr-a
+
+PYTHONPATH=src python3 -m object3d.pipeline.video_keyframes \
+  --video-path "$ROOM_VIDEO" \
+  --output-dir "$RUN_DIR/keyframes" \
+  --manifest-path "$RUN_DIR/frame_manifest.json" \
+  --target-fps 0.5
+```
+
+`target-fps 0.5`는 2초에 한 장 정도 뽑는 설정이다. 30-60초 영상이면 대략
+15-30장 후보가 생기고, 이후 VGGT 단계에서 `--max-frames`로 실제 처리 수를
+제한한다.
+
+로컬 Mac MPS smoke:
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 PYTHONPATH=src python3 -m object3d.pipeline.vggt_geometry_batch \
+  --manifest "$RUN_DIR/frame_manifest.json" \
+  --output-dir "$RUN_DIR/geometry" \
+  --device mps \
+  --max-frames 8
+```
+
+학교 CUDA GPU smoke:
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.vggt_geometry_batch \
+  --manifest "$RUN_DIR/frame_manifest.json" \
+  --output-dir "$RUN_DIR/geometry" \
+  --device cuda \
+  --max-frames 16
+```
+
+산출물:
+
+- `$RUN_DIR/frame_manifest.json`: keyframe 목록과 원본 video metadata
+- `$RUN_DIR/keyframes/frame_*.png`: sampled keyframe 이미지
+- `$RUN_DIR/geometry/frame_000000/geometry.npz`: frame별 depth/pose geometry
+- `$RUN_DIR/geometry/geometry_batch.summary.json`: batch 실행 요약
+
+이 단계는 아직 물체 mask를 3D로 합치는 단계가 아니다. 다음 PR에서 keyframe별
+SAM2/manual segmentation을 붙이고, 그 다음 PR에서 같은 object id의 point cloud를
+multi-view로 fusion한다.
 
 ## 대표 Smoke Fixture 생성
 

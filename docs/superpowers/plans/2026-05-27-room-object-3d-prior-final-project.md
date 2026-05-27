@@ -102,7 +102,7 @@
 - Test: `tests/pipeline/test_run_video_keyframes.py`
 - Modify: `src/README.md`
 
-- [ ] **Step 1: Write failing tests for manifest extraction**
+- [x] **Step 1: Write failing tests for manifest extraction**
 
 Add tests that prove:
 
@@ -127,7 +127,7 @@ def test_run_video_keyframes_writes_manifest_with_sampled_frames(tmp_path):
     assert all(Path(path).exists() for path in summary["frame_paths"])
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -137,7 +137,7 @@ PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_video_keyfr
 
 Expected: fail because `object3d.pipeline.run_video_keyframes` does not exist.
 
-- [ ] **Step 3: Implement `run_video_keyframes`**
+- [x] **Step 3: Implement `run_video_keyframes`**
 
 Implement a small wrapper around existing `run_capture`:
 
@@ -176,7 +176,7 @@ def run_video_keyframes(
     }
 ```
 
-- [ ] **Step 4: Add CLI**
+- [x] **Step 4: Add CLI**
 
 `video_keyframes.py` should accept:
 
@@ -189,7 +189,7 @@ def run_video_keyframes(
 
 The CLI constructs `VideoFrameSource(args.video_path)` and prints JSON summary.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run:
 
@@ -219,7 +219,7 @@ git commit -m "feat(#T21): 방 영상 keyframe 추출 CLI 추가" \
 - Test: `tests/pipeline/test_run_vggt_geometry_batch.py`
 - Modify: `src/README.md`
 
-- [ ] **Step 1: Write failing fake-runner tests**
+- [x] **Step 1: Write failing fake-runner tests**
 
 Test shape:
 
@@ -246,7 +246,7 @@ def test_run_vggt_geometry_batch_writes_one_geometry_per_frame(tmp_path):
     assert all(Path(item["geometry_npz"]).exists() for item in summary["geometries"])
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_vggt_geometry_batch.py
@@ -254,7 +254,7 @@ PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_vggt_geomet
 
 Expected: fail because batch module does not exist.
 
-- [ ] **Step 3: Implement batch save**
+- [x] **Step 3: Implement batch save**
 
 Use existing `run_vggt_geometry` runner contract and `save_vggt_geometry_npz`:
 
@@ -275,7 +275,7 @@ for frame_index, frame in enumerate(frames):
 
 Record `frame_id`, `source_image_path`, `geometry_npz`, and `geometry_depth_shape` in `geometry_batch.summary.json`.
 
-- [ ] **Step 4: Add CLI**
+- [x] **Step 4: Add CLI**
 
 `vggt_geometry_batch.py` should accept:
 
@@ -289,7 +289,7 @@ Record `frame_id`, `source_image_path`, `geometry_npz`, and `geometry_depth_shap
 
 Default `--max-frames` should be conservative: `12` on local Mac; allow school GPU to raise it.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest -q tests/pipeline/test_run_vggt_geometry.py tests/pipeline/test_run_vggt_geometry_batch.py tests/adapters/test_vggt_geometry.py

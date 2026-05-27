@@ -183,6 +183,46 @@ PYTHONPATH=src python -m object3d.pipeline.prior_from_mask \
 먼저 청소하는 단계입니다. 얇은 물체는 erosion으로 사라질 수 있으므로
 `--mask-erode-pixels 0`으로 시작합니다.
 
+### 방 영상 keyframe + VGGT batch smoke
+
+기말 프로젝트 방향에서는 원본 방 영상을 git에 넣지 않고, `outputs/` 아래에서
+keyframe과 VGGT geometry를 생성합니다. 쉽게 말하면, 영상 하나를 작은 대표
+사진 묶음으로 줄이고 그 묶음에서 frame별 depth/pose 파일을 만드는 단계입니다.
+
+```bash
+ROOM_VIDEO=/absolute/path/to/room-video.mov
+RUN_DIR=outputs/room-video-pr-a
+
+PYTHONPATH=src python -m object3d.pipeline.video_keyframes \
+  --video-path "$ROOM_VIDEO" \
+  --output-dir "$RUN_DIR/keyframes" \
+  --manifest-path "$RUN_DIR/frame_manifest.json" \
+  --target-fps 0.5
+```
+
+로컬 Mac MPS에서는 먼저 6-12장 정도만 VGGT에 넣습니다.
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 PYTHONPATH=src python -m object3d.pipeline.vggt_geometry_batch \
+  --manifest "$RUN_DIR/frame_manifest.json" \
+  --output-dir "$RUN_DIR/geometry" \
+  --device mps \
+  --max-frames 8
+```
+
+학교 NVIDIA GPU에서는 같은 명령에서 device와 frame 수만 올려서 시작합니다.
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.vggt_geometry_batch \
+  --manifest "$RUN_DIR/frame_manifest.json" \
+  --output-dir "$RUN_DIR/geometry" \
+  --device cuda \
+  --max-frames 16
+```
+
+방 영상 촬영 기준은 [room video capture guide](docs/runbooks/20260527-room-video-capture-guide.md)에
+정리합니다.
+
 ## 현재 상태
 
 현재는 no-training MVP의 end-to-end skeleton이 연결된 상태입니다.
