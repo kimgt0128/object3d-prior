@@ -43,6 +43,11 @@ SAM/SAM2 predictor 객체를 외부에서 주입하면 `MaskRecord`로 정규화
 VGGT를 한 번 호출하고 frame별 `geometry.npz`를 저장한다. 이 둘은 기말 프로젝트
 PR A(T21-T22)의 핵심 경로다.
 
+`object3d.pipeline.segment_keyframes`는 keyframe manifest와 object prompt
+manifest를 묶어 frame/object별 segmentation 산출물을 만든다.
+`object3d.pipeline.fuse_object_priors`는 이미 생성된 frame별 prior summary의
+PLY point cloud를 읽어 같은 object id 기준으로 합치고 최종 bbox를 만든다.
+
 ## Mock MVP 실행
 
 아직 패키지 설치 설정을 두지 않았으므로 로컬 실행은 `PYTHONPATH=src`를 붙인다.
@@ -236,9 +241,75 @@ PYTHONPATH=src python3 -m object3d.pipeline.vggt_geometry_batch \
 - `$RUN_DIR/geometry/frame_000000/geometry.npz`: frame별 depth/pose geometry
 - `$RUN_DIR/geometry/geometry_batch.summary.json`: batch 실행 요약
 
-이 단계는 아직 물체 mask를 3D로 합치는 단계가 아니다. 다음 PR에서 keyframe별
-SAM2/manual segmentation을 붙이고, 그 다음 PR에서 같은 object id의 point cloud를
-multi-view로 fusion한다.
+이 단계는 아직 물체 mask를 3D로 합치지 않는다. 이어지는
+`segment_keyframes`와 `fuse_object_priors` 경로가 keyframe별 object mask와
+multi-view object prior를 담당한다.
+
+## Keyframe Object Segmentation Batch
+
+object prompt manifest는 사람이 손으로 작성하기 쉬운 JSON으로 둔다. 각 object는
+어떤 keyframe에서 어떤 prompt JSON을 사용할지 적는다.
+
+```json
+{
+  "objects": [
+    {
+      "object_id": "laptop_001",
+      "frames": [
+        {
+          "frame_id": 0,
+          "prompt_json": "outputs/room/prompts/laptop_frame_000000.json"
+        }
+      ]
+    }
+  ]
+}
+```
+
+실행:
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.segment_keyframes \
+  --frame-manifest "$RUN_DIR/frame_manifest.json" \
+  --prompt-manifest "$RUN_DIR/object_prompts.json" \
+  --output-dir "$RUN_DIR/segmentation" \
+  --backend manual
+```
+
+SAM2로 바꾸려면 같은 명령에 checkpoint/config를 추가한다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.segment_keyframes \
+  --frame-manifest "$RUN_DIR/frame_manifest.json" \
+  --prompt-manifest "$RUN_DIR/object_prompts.json" \
+  --output-dir "$RUN_DIR/segmentation" \
+  --backend sam2 \
+  --checkpoint-path checkpoints/sam2.1_hiera_tiny.pt \
+  --config-path configs/sam2.1/sam2.1_hiera_t.yaml \
+  --device cpu
+```
+
+## Object Prior Multi-View Fusion
+
+`segment_keyframes`는 2D mask를 만든다. frame별 3D prior는 기존
+`prior_from_mask --geometry-npz` 경로로 만든 뒤, 같은 object id의 prior summary를
+`fuse_object_priors`로 합친다.
+
+```bash
+PYTHONPATH=src python3 -m object3d.pipeline.fuse_object_priors \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000000/summary.json" \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000006/summary.json" \
+  --output-dir "$RUN_DIR/fused/laptop_001" \
+  --outlier-filter radial_percentile \
+  --outlier-keep-ratio 0.95
+```
+
+산출물:
+
+- `$RUN_DIR/fused/laptop_001/summary.json`: fused object prior summary
+- `$RUN_DIR/fused/laptop_001/laptop_001_cloud.ply`: 합쳐진 point cloud
+- `$RUN_DIR/fused/laptop_001/laptop_001_bbox.ply`: 최종 oriented bbox
+- `$RUN_DIR/fused/laptop_001/scene_manifest.json`: viewer/Rerun 연결용 manifest
 
 ## 대표 Smoke Fixture 생성
 

@@ -223,6 +223,51 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry_batch \
 방 영상 촬영 기준은 [room video capture guide](docs/runbooks/20260527-room-video-capture-guide.md)에
 정리합니다.
 
+### Keyframe 객체 segmentation + multi-view fusion
+
+PR B 단계에서는 keyframe별 prompt manifest를 사용해 같은 물체를 여러 frame에서
+자르고, frame별 3D prior를 하나의 object prior로 합칩니다.
+
+prompt manifest 예시:
+
+```json
+{
+  "objects": [
+    {
+      "object_id": "laptop_001",
+      "frames": [
+        {
+          "frame_id": 0,
+          "prompt_json": "outputs/room/prompts/laptop_frame_000000.json"
+        }
+      ]
+    }
+  ]
+}
+```
+
+segmentation batch:
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.segment_keyframes \
+  --frame-manifest "$RUN_DIR/frame_manifest.json" \
+  --prompt-manifest "$RUN_DIR/object_prompts.json" \
+  --output-dir "$RUN_DIR/segmentation" \
+  --backend manual
+```
+
+frame별 `prior_from_mask`를 만든 뒤에는 같은 object id의 prior summary들을
+fusion합니다.
+
+```bash
+PYTHONPATH=src python -m object3d.pipeline.fuse_object_priors \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000000/summary.json" \
+  --prior-summary "$RUN_DIR/priors/laptop_001/frame_000006/summary.json" \
+  --output-dir "$RUN_DIR/fused/laptop_001" \
+  --outlier-filter radial_percentile \
+  --outlier-keep-ratio 0.95
+```
+
 ## 현재 상태
 
 현재는 no-training MVP의 end-to-end skeleton이 연결된 상태입니다.
@@ -236,4 +281,7 @@ PYTHONPATH=src python -m object3d.pipeline.vggt_geometry_batch \
 5. object point cloud outlier filtering과 oriented bbox
 6. scene manifest와 Rerun recording 저장
 
-다음 큰 작업은 object-aware multi-view fusion과 subpart segmentation입니다. 현재는 view별 3D prior를 만들 수 있지만, 일반 물체를 항상 깔끔한 하나의 3D 객체로 복원하려면 여러 view의 point cloud를 안정적으로 합치고, 열린 노트북처럼 꺾인 물체를 부분 객체로 나누는 단계가 필요합니다.
+다음 큰 작업은 room-level point cloud와 plane summary입니다. 현재는 keyframe별
+객체 segmentation batch와 같은 object id의 prior fusion까지 준비되어 있습니다.
+일반 물체를 항상 깔끔한 하나의 3D 객체로 복원하려면, 이후 실제 방 영상 smoke에서
+prompt 품질, VGGT pose 안정성, outlier filter 기준을 함께 조정해야 합니다.
